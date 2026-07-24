@@ -10,6 +10,7 @@ import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 
 import { UserDashboard } from './pages/user/Dashboard'
+import { Eletropostos } from './pages/user/Eletropostos'
 import { Favorites } from './pages/user/Favorites'
 import { UserReviews } from './pages/user/UserReviews'
 import { StationDetail } from './pages/user/StationDetail'
@@ -55,6 +56,14 @@ function App() {
               <Navbar />
               <DashboardLayout role="user">
                 <UserDashboard />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/eletropostos" element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <Navbar />
+              <DashboardLayout role="user">
+                <Eletropostos />
               </DashboardLayout>
             </ProtectedRoute>
           } />
