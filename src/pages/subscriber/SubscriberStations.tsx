@@ -16,6 +16,7 @@ export function SubscriberStations() {
   const { user } = useAuthStore()
   const [stations, setStations] = useState<ChargingStation[]>([])
   const [loading, setLoading] = useState(true)
+  const [filterState, setFilterState] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingStation, setEditingStation] = useState<ChargingStation | null>(null)
   const [cepSearching, setCepSearching] = useState(false)
@@ -163,6 +164,8 @@ export function SubscriberStations() {
     fetchStations()
   }
 
+  const filteredStations = stations.filter((s) => !filterState || s.state === filterState)
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -170,15 +173,29 @@ export function SubscriberStations() {
         <Button onClick={openNewStation}>+ Novo Eletroposto</Button>
       </div>
 
+      {/* State filter */}
+      <div className="flex items-center gap-3 mb-4">
+        <select value={filterState} onChange={(e) => setFilterState(e.target.value)}
+          className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white">
+          <option value="">Todos os estados</option>
+          {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(s => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        {filterState && (
+          <span className="text-sm text-gray-500 dark:text-gray-400">{filteredStations.length} resultado{filteredStations.length !== 1 ? 's' : ''}</span>
+        )}
+      </div>
+
       {loading ? <div className="text-center py-12 text-gray-500 dark:text-gray-400">Carregando...</div>
-       : stations.length === 0 ? (
+       : filteredStations.length === 0 ? (
         <Card className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Você ainda não cadastrou eletropostos</p>
-          <Button onClick={openNewStation}>Cadastrar Primeiro Eletroposto</Button>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">{filterState ? `Nenhum eletroposto no estado ${filterState}` : 'Você ainda não cadastrou eletropostos'}</p>
+          {!filterState && <Button onClick={openNewStation}>Cadastrar Primeiro Eletroposto</Button>}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {stations.map((station) => (
+          {filteredStations.map((station) => (
             <Card key={station.id} className="overflow-hidden">
               {station.image_url ? (
                 <img src={station.image_url} alt={station.name} className="w-full h-40 object-cover rounded-t-xl -mx-6 -mt-6 mb-4" />

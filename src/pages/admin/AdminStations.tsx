@@ -8,6 +8,7 @@ export function AdminStations() {
   const [stations, setStations] = useState<(ChargingStation & { subscriber?: { full_name: string } })[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all')
+  const [filterState, setFilterState] = useState('')
 
   useEffect(() => {
     fetchStations()
@@ -38,8 +39,9 @@ export function AdminStations() {
   }
 
   const filteredStations = stations.filter((s) => {
-    if (filter === 'pending') return !s.is_approved
-    if (filter === 'approved') return s.is_approved
+    if (filter === 'pending' && s.is_approved) return false
+    if (filter === 'approved' && !s.is_approved) return false
+    if (filterState && s.state !== filterState) return false
     return true
   })
 
@@ -47,7 +49,14 @@ export function AdminStations() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gerenciar Eletropostos</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <select value={filterState} onChange={(e) => setFilterState(e.target.value)}
+            className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white">
+            <option value="">Todos estados</option>
+            {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
           {(['all', 'pending', 'approved'] as const).map((f) => (
             <button
               key={f}
