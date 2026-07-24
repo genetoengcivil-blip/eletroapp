@@ -8,36 +8,44 @@ import 'react-leaflet-markercluster/styles'
 import type { ChargingStation } from '../../lib/types'
 import { Link } from 'react-router-dom'
 
-const stationIcon = new L.DivIcon({
+function powerColor(kw: number): string {
+  if (kw >= 100) return '#dc2626'
+  if (kw >= 50) return '#f59e0b'
+  if (kw >= 22) return '#2563eb'
+  return '#10b981'
+}
+
+const stationIcon = (kw: number) => new L.DivIcon({
   className: 'custom-marker',
-  html: `<div style="background:#2563eb;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+  html: `<div style="background:${powerColor(kw)};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35);transition:transform 0.2s;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
   </div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
+  iconSize: [30, 30],
+  iconAnchor: [15, 30],
 })
 
 const userIcon = new L.DivIcon({
   className: 'user-marker',
-  html: `<div style="background:#3b82f6;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:3px solid white;">
-    <svg style="transform:rotate(45deg);width:16px;height:16px" viewBox="0 0 24 24" fill="white">
-      <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-    </svg>
+  html: `<div style="position:relative;width:24px;height:24px;">
+    <div style="position:absolute;inset:-4px;background:rgba(59,130,246,0.25);border-radius:50%;animation:pulse-ring 2s ease-out infinite;"></div>
+    <div style="position:relative;width:24px;height:24px;background:#2563eb;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="4"/></svg>
+    </div>
   </div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
 })
 
 const originIcon = new L.DivIcon({
   className: 'origin-marker',
-  html: `<div style="background:#22c55e;width:24px;height:24px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">A</div>`,
+  html: `<div style="background:#22c55e;width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">A</div>`,
   iconSize: [24, 24],
   iconAnchor: [12, 12],
 })
 
 const destIcon = new L.DivIcon({
   className: 'dest-marker',
-  html: `<div style="background:#ef4444;width:24px;height:24px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">B</div>`,
+  html: `<div style="background:#ef4444;width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">B</div>`,
   iconSize: [24, 24],
   iconAnchor: [12, 12],
 })
@@ -81,27 +89,30 @@ interface MapViewProps {
   flyToTarget?: [number, number] | null
 }
 
-const createClusterIcon = (count: number) => new L.DivIcon({
-  html: `<div style="background:#2563eb;width:${Math.max(30, 24 + count * 2)}px;height:${Math.max(30, 24 + count * 2)}px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:${Math.max(10, 9 + count * 0.5)}px;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${count}</div>`,
-  className: 'cluster-marker',
-  iconSize: L.point(30, 30),
-})
+const createClusterIcon = (count: number) => {
+  const size = Math.min(60, 28 + Math.log2(count + 1) * 10)
+  return new L.DivIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#1d4ed8);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:${Math.max(11, 10 + Math.log2(count))}px;border:3px solid white;box-shadow:0 4px 12px rgba(37,99,235,0.5)">${count}</div>`,
+    className: 'cluster-marker',
+    iconSize: L.point(size, size),
+  })
+}
 
 export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292], onStationClick, routeCoordinates, routeOrigin, routeDestination, flyToTarget }: MapViewProps) {
   const stationOnRouteIcon = new L.DivIcon({
     className: 'station-on-route',
-    html: `<div style="background:#2563eb;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">
+    html: `<div style="background:#8b5cf6;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(139,92,246,0.4)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
     </div>`,
-    iconSize: [28, 28],
+    iconSize: [30, 30],
     iconAnchor: [14, 28],
   })
 
   return (
     <MapContainer center={center} zoom={12} className="h-full w-full rounded-xl" style={{ height: '100%', width: '100%' }}>
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
       />
       <UserLocationMarker />
       <MapFitter center={flyToTarget} zoom={14} />
@@ -126,21 +137,50 @@ export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292
             <Marker
               key={station.id}
               position={[station.latitude, station.longitude]}
-              icon={isOnRoute ? stationOnRouteIcon : stationIcon}
+              icon={isOnRoute ? stationOnRouteIcon : stationIcon(station.power_kw)}
               eventHandlers={{ click: () => onStationClick?.(station) }}
             >
               <Popup>
-                <div className="min-w-[200px]">
-                  <h3 className="font-semibold text-gray-900">{station.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{station.address}</p>
-                  <p className="text-sm text-gray-500">{station.city} - {station.state}</p>
-                  {station.avg_rating && <span className="text-yellow-500 text-sm">{'★'.repeat(Math.round(station.avg_rating))} ({station.review_count})</span>}
-                  <div className="mt-2 space-y-0.5">
-                    <p className="text-sm font-medium text-blue-600">{station.is_free ? 'GRÁTIS' : `${station.power_kw}kW • R$${station.price_per_kwh}/kWh`}</p>
-                    <p className="text-xs text-gray-500">🕐 {station.operating_hours}</p>
-                    <p className="text-xs text-gray-500">📅 {station.operating_days}</p>
+                <div className="min-w-[220px] max-w-[280px]">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900 text-sm leading-tight">{station.name}</h3>
+                      <p className="text-[11px] text-gray-500 mt-0.5">{station.city} - {station.state}</p>
+                    </div>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: powerColor(station.power_kw) }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
                   </div>
-                  <Link to={`/dashboard/station/${station.id}`} className="inline-block mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium">Ver detalhes →</Link>
+                  <p className="text-[11px] text-gray-500 mb-2 flex items-center gap-1">
+                    <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span className="truncate">{station.address || 'Endereço não informado'}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {station.connector_types?.slice(0, 3).map((ct) => (
+                      <span key={ct} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">{ct}</span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] mb-2">
+                    <span className="font-bold" style={{ color: powerColor(station.power_kw) }}>{station.power_kw}kW</span>
+                    <span className="text-gray-300">|</span>
+                    {station.is_free ? (
+                      <span className="font-bold text-green-600">GRATIS</span>
+                    ) : (
+                      <span className="text-gray-600">R${station.price_per_kwh}/kWh</span>
+                    )}
+                    <span className="text-gray-300">|</span>
+                    <span className="text-gray-600">🕐 {station.operating_hours}</span>
+                  </div>
+                  {station.avg_rating && (
+                    <div className="flex items-center gap-1 text-[11px] mb-2">
+                      <span className="text-amber-500">{'★'.repeat(Math.round(station.avg_rating))}</span>
+                      <span className="text-gray-400">({station.review_count})</span>
+                    </div>
+                  )}
+                  <Link to={`/dashboard/station/${station.id}`}
+                    className="block w-full text-center text-[11px] py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                    Ver detalhes
+                  </Link>
                 </div>
               </Popup>
             </Marker>

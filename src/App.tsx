@@ -14,6 +14,8 @@ import { Favorites } from './pages/user/Favorites'
 import { UserReviews } from './pages/user/UserReviews'
 import { StationDetail } from './pages/user/StationDetail'
 import { Profile } from './pages/user/Profile'
+import { TripPlanner } from './pages/user/TripPlanner'
+import { Marketplace } from './pages/user/Marketplace'
 
 import { SubscriberDashboard } from './pages/subscriber/Dashboard'
 import { SubscriberStations } from './pages/subscriber/SubscriberStations'
@@ -86,6 +88,22 @@ function App() {
               <DashboardLayout role="user">
                 <Profile />
               </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/trip-planner" element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <Navbar />
+              <main className="flex-1 pb-16 md:pb-0">
+                <TripPlanner />
+              </main>
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/marketplace" element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <Navbar />
+              <main className="flex-1 pb-16 md:pb-0">
+                <Marketplace />
+              </main>
             </ProtectedRoute>
           } />
 

@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+import-all.cjs
+geocode*.cjs
+debug-*.cjs
