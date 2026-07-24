@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useThemeStore } from '../../stores/themeStore'
 import { getStoredAccounts, removeAccount, type StoredAccount } from '../../lib/accounts'
@@ -7,7 +7,6 @@ import { getStoredAccounts, removeAccount, type StoredAccount } from '../../lib/
 export function Navbar() {
   const { user, profile, handleSignOut } = useAuth()
   const { dark, toggle } = useThemeStore()
-  const navigate = useNavigate()
   const [showSwitcher, setShowSwitcher] = useState(false)
   const [accounts, setAccounts] = useState<StoredAccount[]>([])
   const ref = useRef<HTMLDivElement>(null)

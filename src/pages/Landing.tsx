@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useThemeStore } from '../stores/themeStore'
 
 const plans = [
   {
@@ -59,8 +58,6 @@ const stats = [
 ]
 
 export function Landing() {
-  const { dark } = useThemeStore()
-
   return (
     <div className="min-h-screen">
       {/* Hero */}

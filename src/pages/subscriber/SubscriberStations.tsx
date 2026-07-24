@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { geocode, reverseGeocode } from '../../lib/route'
@@ -114,7 +114,7 @@ export function SubscriberStations() {
     const bucket = 'station-images'
     const ext = file.name.split('.').pop() || 'jpg'
     const filename = `${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`
-    const { data, error } = await supabase.storage.from(bucket).upload(filename, file, { upsert: false })
+    const { data: _data, error } = await supabase.storage.from(bucket).upload(filename, file, { upsert: false })
     if (error) {
       console.error('Storage error:', error)
       // Fallback: return a placeholder URL for demo purposes

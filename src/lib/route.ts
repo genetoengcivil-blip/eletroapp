@@ -74,11 +74,11 @@ export function haversineDistance(a: GeoPoint, b: GeoPoint): number {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
 }
 
-export function getStationsNearRoute(
-  stations: { latitude: number; longitude: number; [key: string]: unknown }[],
+export function getStationsNearRoute<T extends { latitude: number; longitude: number }>(
+  stations: T[],
   routeCoords: [number, number][],
   maxDistanceKm: number = 5
-) {
+): T[] {
   const sampled = sampleRoute(routeCoords, 200)
   return stations.filter((station) => {
     const point: GeoPoint = { lat: station.latitude, lng: station.longitude }

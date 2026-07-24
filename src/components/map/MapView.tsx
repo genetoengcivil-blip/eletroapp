@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents 
 import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+// @ts-expect-error - react-leaflet-markercluster styles
 import 'react-leaflet-markercluster/styles'
 import type { ChargingStation } from '../../lib/types'
 import { Link } from 'react-router-dom'
@@ -117,7 +118,7 @@ export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292
         showCoverageOnHover={false}
         maxClusterRadius={50}
         spiderfyOnMaxZoom={true}
-        iconCreateFunction={(cluster) => createClusterIcon(cluster.getChildCount())}
+        iconCreateFunction={(cluster: { getChildCount: () => number }) => createClusterIcon(cluster.getChildCount())}
       >
         {stations.map((station) => {
           const isOnRoute = routeCoordinates && routeCoordinates.length > 0

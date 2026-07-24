@@ -19,7 +19,7 @@ import {
 import { addRouteHistory } from '../../lib/history'
 
 export function UserDashboard() {
-  const { profile } = useAuthStore()
+  useAuthStore()
   const [stations, setStations] = useState<ChargingStation[]>([])
   const [showRoutePanel, setShowRoutePanel] = useState(false)
   const [allStations, setAllStations] = useState<ChargingStation[]>([])
@@ -30,7 +30,7 @@ export function UserDashboard() {
   const [filterFreeOnly, setFilterFreeOnly] = useState(false)
   const [filterConnector, setFilterConnector] = useState('')
 
-  const [originMode, setOriginMode] = useState<'gps' | 'manual' | null>(null)
+  const [, setOriginMode] = useState<'gps' | 'manual' | null>(null)
   const [originText, setOriginText] = useState('')
   const [originCoords, setOriginCoords] = useState<[number, number] | null>(null)
   const [destText, setDestText] = useState('')
