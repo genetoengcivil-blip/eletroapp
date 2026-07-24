@@ -72,12 +72,19 @@ export function Eletropostos() {
   }
 
   const filteredStations = stations.filter(
-    (s) =>
-      (s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.city.toLowerCase().includes(searchQuery.toLowerCase())) &&
-      s.power_kw >= filterPower &&
-      (!filterFreeOnly || s.is_free) &&
-      (!filterConnector || s.connector_types?.includes(filterConnector)) &&
-      (!filterState || s.state === filterState)
+    (s) => {
+      const q = searchQuery.toLowerCase()
+      const matchesSearch = !q ||
+        s.name.toLowerCase().includes(q) ||
+        s.city.toLowerCase().includes(q) ||
+        s.state.toLowerCase().includes(q) ||
+        (s.address && s.address.toLowerCase().includes(q))
+      return matchesSearch &&
+        s.power_kw >= filterPower &&
+        (!filterFreeOnly || s.is_free) &&
+        (!filterConnector || s.connector_types?.includes(filterConnector)) &&
+        (!filterState || s.state === filterState)
+    }
   )
 
   const isStationOpen = (hours: string): boolean => {
@@ -141,8 +148,13 @@ export function Eletropostos() {
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input type="text" placeholder="Buscar por nome ou cidade..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-gray-50 dark:bg-gray-800 dark:text-white placeholder-gray-400 transition-all" />
+            <input type="text" placeholder="Buscar por nome, cidade ou estado..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-gray-50 dark:bg-gray-800 dark:text-white placeholder-gray-400 transition-all" />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -361,7 +373,18 @@ export function Eletropostos() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input type="text" placeholder="Buscar eletropostos..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+                className="w-full pl-9 pr-9 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[10px] text-gray-400">{filteredStations.length} resultado{filteredStations.length !== 1 ? 's' : ''}</span>
+              <button onClick={() => setShowFilters(!showFilters)} className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                {showFilters ? 'Fechar' : 'Filtros'}
+              </button>
             </div>
           </div>
         </div>

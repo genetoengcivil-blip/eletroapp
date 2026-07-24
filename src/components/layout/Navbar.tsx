@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useThemeStore } from '../../stores/themeStore'
 import { getStoredAccounts, removeAccount, type StoredAccount } from '../../lib/accounts'
@@ -10,6 +10,10 @@ export function Navbar() {
   const [showSwitcher, setShowSwitcher] = useState(false)
   const [accounts, setAccounts] = useState<StoredAccount[]>([])
   const ref = useRef<HTMLDivElement>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const isSubPage = location.pathname !== '/' && location.pathname !== '/login' && location.pathname !== '/register'
 
   useEffect(() => {
     setAccounts(getStoredAccounts())
@@ -24,37 +28,36 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const getDashboardPath = () => {
-    if (!profile) return '/login'
-    switch (profile.role) {
-      case 'admin': return '/admin'
-      case 'subscriber': return '/subscriber'
-      default: return '/dashboard'
-    }
-  }
-
   const initials = (name: string) => name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase()
 
   return (
-    <nav className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-14 sm:h-16 items-center">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">EletroApp</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            {isSubPage && (
+              <button onClick={() => navigate(-1)}
+                className="p-2 -ml-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">EletroApp</span>
+            </Link>
+          </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Dark mode toggle */}
-            <button
-              onClick={toggle}
+            <button onClick={toggle}
               className="p-2 rounded-lg transition-colors bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-              title={dark ? 'Modo claro' : 'Modo escuro'}
-            >
+              title={dark ? 'Modo claro' : 'Modo escuro'}>
               {dark ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -68,16 +71,10 @@ export function Navbar() {
 
             {user ? (
               <div className="flex items-center gap-2 sm:gap-3">
-                <Link to={getDashboardPath()} className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  Dashboard
-                </Link>
-
                 {accounts.length > 1 && (
                   <div ref={ref} className="relative">
-                    <button
-                      onClick={() => setShowSwitcher(!showSwitcher)}
-                      className="flex items-center gap-2 px-2 py-1 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
+                    <button onClick={() => setShowSwitcher(!showSwitcher)}
+                      className="flex items-center gap-2 px-2 py-1 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
                       <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
                         {profile?.avatar_url
                           ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
@@ -124,14 +121,14 @@ export function Navbar() {
                   </div>
                 )}
 
-                {/* Profile avatar + name */}
+                {/* Profile avatar + first name */}
                 <div className="hidden sm:flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
                     {profile?.avatar_url
                       ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                       : profile?.full_name ? initials(profile.full_name) : '?'}
                   </div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 max-w-[120px] truncate">{profile?.full_name}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 max-w-[100px] truncate">{profile?.full_name?.split(' ')[0]}</span>
                 </div>
                 <button onClick={handleSignOut} className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                   Sair

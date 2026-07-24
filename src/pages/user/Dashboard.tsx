@@ -6,13 +6,15 @@ import type { ChargingStation } from '../../lib/types'
 import { haversineDistance } from '../../lib/route'
 
 export function UserDashboard() {
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
   const [totalStations, setTotalStations] = useState(0)
   const [favoriteCount, setFavoriteCount] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
   const [nearbyStations, setNearbyStations] = useState<ChargingStation[]>([])
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const firstName = profile?.full_name?.split(' ')[0] || 'usuário'
 
   const powerColor = (kw: number): string => {
     if (kw >= 100) return '#dc2626'
@@ -56,7 +58,7 @@ export function UserDashboard() {
       const sorted = (data as ChargingStation[])
         .map((s) => ({ ...s, _dist: haversineDistance({ lat: userLocation[0], lng: userLocation[1] }, { lat: s.latitude, lng: s.longitude }) }))
         .sort((a: any, b: any) => a._dist - b._dist)
-        .slice(0, 5) as ChargingStation[]
+        .slice(0, 6) as ChargingStation[]
       setNearbyStations(sorted)
     }
   }
@@ -74,10 +76,12 @@ export function UserDashboard() {
   ]
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Meu Painel</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+          Olá, <span className="text-blue-600 dark:text-blue-400">{firstName}</span>
+        </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Bem-vindo de volta! Aqui está um resumo da sua conta.</p>
       </div>
 
@@ -85,8 +89,7 @@ export function UserDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {stats.map((s) => (
           <Link key={s.label} to={s.link}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{ background: `linear-gradient(135deg, var(--tw-gradient-stops))` }}>
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-90`} />
             <div className="relative flex items-center justify-between">
               <div>
@@ -109,7 +112,7 @@ export function UserDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {quickActions.map((a) => (
             <Link key={a.label} to={a.link}
-              className={`${a.color} text-white rounded-xl p-4 flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md`}>
+              className={`${a.color} text-white rounded-xl p-4 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-md`}>
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={a.icon} />
@@ -134,7 +137,7 @@ export function UserDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {nearbyStations.map((station) => (
               <Link key={station.id} to={`/dashboard/station/${station.id}`}
-                className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700 transition-all">
+                className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700 transition-all duration-300">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${powerColor(station.power_kw)}15` }}>
                     <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: powerColor(station.power_kw) }}>

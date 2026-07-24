@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { MapView } from '../../components/map/MapView'
 import type { ChargingStation } from '../../lib/types'
-import { geocode, getRoute, getStationsNearRoute, formatDuration, formatDistance, haversineDistance, type NominatimResult, type RouteResult } from '../../lib/route'
+import { geocode, getRoute, getStationsNearRoute, formatDuration, formatDistance, haversineDistance, type NominatimResult, type RouteResult, type GeoPoint } from '../../lib/route'
 
 const EV_CARS = [
   { name: 'Tesla Model 3', autonomy: 510, battery: 60, connector: 'CCS' },
@@ -22,9 +22,68 @@ const EV_CARS = [
   { name: 'Outro', autonomy: 400, battery: 60, connector: 'CCS' },
 ]
 
+interface RecommendedStop {
+  station: ChargingStation
+  distanceFromStart: number
+  distanceFromPrev: number
+  estimatedArrivalSoc: number
+  estimatedDepartureSoc: number
+  chargingTimeMin: number
+  segmentIndex: number
+}
+
+function getCumulativeDistances(routeCoords: [number, number][]): number[] {
+  const distances = [0]
+  for (let i = 1; i < routeCoords.length; i++) {
+    const prev = { lat: routeCoords[i - 1][0], lng: routeCoords[i - 1][1] }
+    const curr = { lat: routeCoords[i][0], lng: routeCoords[i][1] }
+    distances.push(distances[i - 1] + haversineDistance(prev, curr))
+  }
+  return distances
+}
+
+function getStationAtDistance(
+  routeCoords: [number, number][],
+  cumulativeDist: number[],
+  targetKm: number,
+  stations: ChargingStation[],
+  maxDeviationKm: number
+): ChargingStation | null {
+  let bestStation: ChargingStation | null = null
+  let bestScore = -Infinity
+
+  for (const station of stations) {
+    const stationPoint: GeoPoint = { lat: station.latitude, lng: station.longitude }
+    let minDeviation = Infinity
+    let bestIdx = 0
+
+    for (let i = 0; i < routeCoords.length; i += 5) {
+      const rp: GeoPoint = { lat: routeCoords[i][0], lng: routeCoords[i][1] }
+      const dev = haversineDistance(stationPoint, rp)
+      if (dev < minDeviation) {
+        minDeviation = dev
+        bestIdx = i
+      }
+    }
+
+    if (minDeviation > maxDeviationKm) continue
+
+    const stationDistOnRoute = cumulativeDist[bestIdx] || 0
+    const distFromTarget = Math.abs(stationDistOnRoute - targetKm)
+    const powerScore = Math.min(station.power_kw / 10, 10)
+    const score = powerScore * 2 - distFromTarget * 0.5 - minDeviation * 3
+
+    if (score > bestScore) {
+      bestScore = score
+      bestStation = station
+    }
+  }
+
+  return bestStation
+}
+
 export function TripPlanner() {
   const [allStations, setAllStations] = useState<ChargingStation[]>([])
-  const [stations, setStations] = useState<ChargingStation[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCar, setSelectedCar] = useState(EV_CARS[0])
   const [soc, setSoc] = useState(80)
@@ -40,6 +99,7 @@ export function TripPlanner() {
   const [route, setRoute] = useState<RouteResult | null>(null)
   const [routeLoading, setRouteLoading] = useState(false)
   const [routeStations, setRouteStations] = useState<ChargingStation[]>([])
+  const [recommendedStops, setRecommendedStops] = useState<RecommendedStop[]>([])
   const [flyToTarget, setFlyToTarget] = useState<[number, number] | null>(null)
 
   const [focusOrigin, setFocusOrigin] = useState(false)
@@ -66,10 +126,7 @@ export function TripPlanner() {
       .select('*')
       .eq('is_active', true)
       .eq('is_approved', true)
-    if (data) {
-      setAllStations(data as ChargingStation[])
-      setStations(data as ChargingStation[])
-    }
+    if (data) setAllStations(data as ChargingStation[])
     setLoading(false)
   }
 
@@ -77,8 +134,7 @@ export function TripPlanner() {
     ? customAutonomy
     : (selectedCar.autonomy * soc) / 100
   const usableRange = autonomy
-  const needChargeAt = (autonomy * minSoc) / 100
-  const maxChargeRange = autonomy - needChargeAt
+  const maxChargeRange = autonomy * (1 - minSoc / 100)
 
   const doSearch = async (q: string, setResults: (r: NominatimResult[]) => void) => {
     if (q.length < 2) { setResults([]); return }
@@ -89,7 +145,7 @@ export function TripPlanner() {
     setOriginText(value)
     setOriginCoords(null)
     if (originTimer.current) clearTimeout(originTimer.current)
-    originTimer.current = setTimeout(() => doSearch(value, setOriginResults), 500)
+    originTimer.current = setTimeout(() => doSearch(value, setOriginResults), 400)
     setFocusOrigin(true)
   }
 
@@ -97,19 +153,19 @@ export function TripPlanner() {
     setDestText(value)
     setDestCoords(null)
     if (destTimer.current) clearTimeout(destTimer.current)
-    destTimer.current = setTimeout(() => doSearch(value, setDestResults), 500)
+    destTimer.current = setTimeout(() => doSearch(value, setDestResults), 400)
     setFocusDest(true)
   }
 
   const selectOrigin = (r: NominatimResult) => {
-    setOriginText(r.display_name.length > 40 ? r.display_name.substring(0, 40) + '...' : r.display_name)
+    setOriginText(r.display_name.split(',')[0])
     setOriginCoords([parseFloat(r.lat), parseFloat(r.lon)])
     setFocusOrigin(false)
     setFlyToTarget([parseFloat(r.lat), parseFloat(r.lon)])
   }
 
   const selectDest = (r: NominatimResult) => {
-    setDestText(r.display_name.length > 40 ? r.display_name.substring(0, 40) + '...' : r.display_name)
+    setDestText(r.display_name.split(',')[0])
     setDestCoords([parseFloat(r.lat), parseFloat(r.lon)])
     setFocusDest(false)
     setFlyToTarget([parseFloat(r.lat), parseFloat(r.lon)])
@@ -130,35 +186,74 @@ export function TripPlanner() {
   const calculateRoute = async () => {
     if (!originCoords || !destCoords) return
     setRouteLoading(true)
+    setRecommendedStops([])
     try {
       const r = await getRoute({ lat: originCoords[0], lng: originCoords[1] }, { lat: destCoords[0], lng: destCoords[1] })
       setRoute(r)
 
-      const nearby = getStationsNearRoute(allStations, r.coordinates, 20)
+      const nearby = getStationsNearRoute(allStations, r.coordinates, 25)
       setRouteStations(nearby)
-      setStations(nearby.length > 0 ? nearby : allStations)
+
+      const distanceKm = r.distance / 1000
+      const needsCharging = distanceKm > usableRange * 0.85
+
+      if (!needsCharging || nearby.length === 0) {
+        setRecommendedStops([])
+        return
+      }
+
+      const cumDist = getCumulativeDistances(r.coordinates)
+      const totalDistance = cumDist[cumDist.length - 1]
+      const stops: RecommendedStop[] = []
+      const usedStationIds = new Set<string>()
+
+      const numStopsNeeded = Math.ceil(distanceKm / maxChargeRange)
+      const segmentLength = totalDistance / (numStopsNeeded + 1)
+
+      for (let i = 1; i <= numStopsNeeded; i++) {
+        const targetKm = segmentLength * i
+        const availableStations = nearby.filter(s => !usedStationIds.has(s.id))
+        const station = getStationAtDistance(r.coordinates, cumDist, targetKm, availableStations, 25)
+
+        if (station) {
+          usedStationIds.add(station.id)
+          const stationPoint: GeoPoint = { lat: station.latitude, lng: station.longitude }
+          let stationIdx = 0
+          let minDev = Infinity
+          for (let j = 0; j < r.coordinates.length; j += 5) {
+            const rp: GeoPoint = { lat: r.coordinates[j][0], lng: r.coordinates[j][1] }
+            const dev = haversineDistance(stationPoint, rp)
+            if (dev < minDev) { minDev = dev; stationIdx = j }
+          }
+          const distOnRoute = cumDist[stationIdx] || targetKm
+          const prevDist = stops.length > 0 ? stops[stops.length - 1].distanceFromStart : 0
+          const distFromPrev = distOnRoute - prevDist
+          const socAtArrival = Math.max(minSoc, soc - (distFromPrev / usableRange) * soc)
+          const chargeNeeded = Math.min(100, socAtArrival + (distFromPrev / usableRange) * 30)
+          const chargeTimeMin = Math.round(((chargeNeeded - socAtArrival) / 100) * (selectedCar.battery / (station.power_kw / 100)) * 60)
+
+          stops.push({
+            station,
+            distanceFromStart: distOnRoute,
+            distanceFromPrev: distFromPrev,
+            estimatedArrivalSoc: Math.round(socAtArrival),
+            estimatedDepartureSoc: Math.min(90, Math.round(chargeNeeded)),
+            chargingTimeMin: Math.max(15, Math.min(60, chargeTimeMin)),
+            segmentIndex: i,
+          })
+        }
+      }
+
+      setRecommendedStops(stops)
     } catch {}
     setRouteLoading(false)
   }
 
   const distanceKm = route ? route.distance / 1000 : 0
-  const autonomyKm = usableRange
-  const needsCharging = distanceKm > autonomyKm * 0.9
+  const needsCharging = distanceKm > usableRange * 0.85
   const chargeStopsNeeded = needsCharging ? Math.ceil(distanceKm / maxChargeRange) : 0
 
-  const getChargingStrategy = () => {
-    if (!route) return null
-    if (!needsCharging) {
-      return { type: 'direct', message: `Trajeto direto! Você tem autonomia suficiente (${autonomyKm.toFixed(0)}km) para percorrer ${distanceKm.toFixed(0)}km.` }
-    }
-    return {
-      type: 'stops',
-      message: `Sua autonomia atual é de ${autonomyKm.toFixed(0)}km. Para ${(distanceKm).toFixed(0)}km, você precisará parar em pelo menos ${chargeStopsNeeded} eletroposto(s) ao longo da rota.`,
-      stops: routeStations.slice(0, chargeStopsNeeded),
-    }
-  }
-
-  const strategy = getChargingStrategy()
+  const totalChargingTime = recommendedStops.reduce((acc, s) => acc + s.chargingTimeMin, 0)
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
@@ -196,7 +291,6 @@ export function TripPlanner() {
             </div>
           )}
 
-          {/* SOC Slider */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="text-[10px] font-medium text-gray-400 uppercase">Carga Atual (SOC)</label>
@@ -210,7 +304,6 @@ export function TripPlanner() {
             </div>
           </div>
 
-          {/* Min SOC */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="text-[10px] font-medium text-gray-400 uppercase">SOC Mínimo</label>
@@ -220,11 +313,10 @@ export function TripPlanner() {
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
           </div>
 
-          {/* Autonomy Display */}
           <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl p-3.5 border border-blue-100 dark:border-blue-800/30">
             <div className="grid grid-cols-2 gap-3">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{autonomyKm.toFixed(0)}</div>
+                <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{usableRange.toFixed(0)}</div>
                 <div className="text-[10px] text-blue-500 dark:text-blue-400 font-medium">km de autonomia</div>
               </div>
               <div className="text-center">
@@ -245,7 +337,7 @@ export function TripPlanner() {
                 value={originText} onChange={(e) => handleOriginInput(e.target.value)}
                 onFocus={() => originResults.length > 0 && setFocusOrigin(true)}
                 className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-              <button type="button" onClick={useGps} title="GPS"
+              <button type="button" onClick={useGps} title="Usar minha localização"
                 className="px-2.5 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
@@ -290,39 +382,115 @@ export function TripPlanner() {
           </button>
         </div>
 
-        {/* Strategy Result */}
-        {strategy && (
+        {/* Route Summary */}
+        {route && (
           <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-            <div className={`rounded-xl p-3.5 text-xs ${strategy.type === 'direct' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 text-green-800 dark:text-green-300' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-300'}`}>
-              <p className="font-medium mb-1">{strategy.type === 'direct' ? 'Trajeto Direto' : 'Atenção: Paradas Necessárias'}</p>
-              <p>{strategy.message}</p>
+            <div className={`rounded-xl p-3.5 text-xs ${!needsCharging ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 text-green-800 dark:text-green-300' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-300'}`}>
+              <p className="font-medium mb-1">{!needsCharging ? 'Trajeto Direto' : `${chargeStopsNeeded} parada(s) necessária(s)`}</p>
+              <p>{!needsCharging
+                ? `Autonomia de ${usableRange.toFixed(0)}km é suficiente para ${distanceKm.toFixed(0)}km.`
+                : `Autonomia de ${usableRange.toFixed(0)}km para ${distanceKm.toFixed(0)}km de distância.`
+              }</p>
             </div>
-            {route && (
-              <div className="mt-3 space-y-1.5 text-xs">
-                <div className="flex justify-between"><span className="text-gray-500">Distância total</span><span className="font-semibold text-gray-900 dark:text-white">{formatDistance(route.distance)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Tempo estimado</span><span className="font-semibold text-gray-900 dark:text-white">{formatDuration(route.duration)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Eletropostos na rota</span><span className="font-semibold text-blue-600 dark:text-blue-400">{routeStations.length}</span></div>
-              </div>
-            )}
+            <div className="mt-3 space-y-1.5 text-xs">
+              <div className="flex justify-between"><span className="text-gray-500">Distância total</span><span className="font-semibold text-gray-900 dark:text-white">{formatDistance(route.distance)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Tempo de direção</span><span className="font-semibold text-gray-900 dark:text-white">{formatDuration(route.duration)}</span></div>
+              {recommendedStops.length > 0 && (
+                <>
+                  <div className="flex justify-between"><span className="text-gray-500">Tempo de recarga</span><span className="font-semibold text-amber-600 dark:text-amber-400">~{totalChargingTime}min</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Tempo total estimado</span><span className="font-semibold text-gray-900 dark:text-white">{formatDuration(route.duration + totalChargingTime * 60)}</span></div>
+                </>
+              )}
+              <div className="flex justify-between"><span className="text-gray-500">Eletropostos na rota</span><span className="font-semibold text-blue-600 dark:text-blue-400">{routeStations.length}</span></div>
+            </div>
           </div>
         )}
 
-        {/* Recommended Stops */}
-        {strategy?.type === 'stops' && routeStations.length > 0 && (
+        {/* Recommended Stops Timeline */}
+        {recommendedStops.length > 0 && (
           <div className="p-4 space-y-2">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Eletropostos Recomendados</h3>
-            {routeStations.slice(0, 5).map((s, i) => (
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Paradas Recomendadas</h3>
+            <div className="space-y-0">
+              {/* Origin */}
+              <div className="flex items-start gap-3 relative">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 z-10">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  <div className="w-0.5 h-8 bg-gray-200 dark:bg-gray-700" />
+                </div>
+                <div className="pb-2 pt-1">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white">{originText || 'Origem'}</p>
+                  <p className="text-[10px] text-gray-400">Bateria: {soc}%</p>
+                </div>
+              </div>
+
+              {/* Stops */}
+              {recommendedStops.map((stop, i) => (
+                <div key={stop.station.id} className="flex items-start gap-3 relative">
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 z-10">
+                      {i + 1}
+                    </div>
+                    {i < recommendedStops.length - 1 && <div className="w-0.5 h-8 bg-gray-200 dark:bg-gray-700" />}
+                  </div>
+                  <div className="pb-2 pt-1 flex-1">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{stop.station.name}</p>
+                    <p className="text-[10px] text-gray-400">{stop.station.power_kw}kW • {stop.station.city}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded font-medium">
+                        +{stop.chargingTimeMin}min
+                      </span>
+                      <span className="text-[10px] text-gray-400">{stop.distanceFromPrev.toFixed(0)}km da última parada</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-1">
+                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${stop.estimatedArrivalSoc}%` }} />
+                        </div>
+                        <span className="text-[9px] text-gray-400">{stop.estimatedArrivalSoc}%</span>
+                      </div>
+                      <svg className="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                      <div className="flex items-center gap-1">
+                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500 rounded-full" style={{ width: `${stop.estimatedDepartureSoc}%` }} />
+                        </div>
+                        <span className="text-[9px] text-gray-400">{stop.estimatedDepartureSoc}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Destination */}
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 z-10">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                  </div>
+                </div>
+                <div className="pt-1">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white">{destText || 'Destino'}</p>
+                  <p className="text-[10px] text-gray-400">Distância restante: {(distanceKm - (recommendedStops[recommendedStops.length - 1]?.distanceFromStart || 0)).toFixed(0)}km</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Nearby stations when no route */}
+        {!route && routeStations.length > 0 && (
+          <div className="p-4 space-y-2">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Eletropostos Disponíveis</h3>
+            {routeStations.slice(0, 5).map((s) => (
               <div key={s.id} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold flex-shrink-0">
-                  {i + 1}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{s.name}</p>
                   <p className="text-[10px] text-gray-400">{s.power_kw}kW • {s.city}</p>
                 </div>
-                <span className="text-[10px] text-gray-400">
-                  {originCoords ? `${haversineDistance({ lat: originCoords[0], lng: originCoords[1] }, { lat: s.latitude, lng: s.longitude }).toFixed(0)}km` : ''}
-                </span>
               </div>
             ))}
           </div>
@@ -353,7 +521,7 @@ export function TripPlanner() {
             </div>
           </div>
         ) : (
-          <MapView stations={stations} center={[-15.7801, -47.9292]} flyToTarget={flyToTarget}
+          <MapView stations={routeStations.length > 0 ? routeStations : allStations} center={[-15.7801, -47.9292]} flyToTarget={flyToTarget}
             routeCoordinates={route?.coordinates} routeOrigin={originCoords ?? undefined} routeDestination={destCoords ?? undefined} />
         )}
       </div>
