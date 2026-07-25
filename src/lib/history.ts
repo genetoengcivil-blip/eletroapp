@@ -1,41 +1,57 @@
-export interface RouteHistoryEntry {
-  id: string
-  origin: { lat: number; lng: number; text: string }
-  destination: { lat: number; lng: number; text: string }
-  distance: number
-  duration: number
-  timestamp: number
-}
+import { supabase } from './supabase'
+import type { TravelHistoryEntry } from './types'
 
-const STORAGE_KEY = 'eletroapp_route_history'
-const MAX_ENTRIES = 20
+export type { TravelHistoryEntry }
 
-export function getRouteHistory(): RouteHistoryEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
+export async function getTravelHistory(userId: string): Promise<TravelHistoryEntry[]> {
+  const { data, error } = await supabase
+    .from('travel_history')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching history:', error)
     return []
   }
+  return data || []
 }
 
-export function addRouteHistory(entry: Omit<RouteHistoryEntry, 'id' | 'timestamp'>): void {
-  const history = getRouteHistory()
-  const newEntry: RouteHistoryEntry = {
-    ...entry,
-    id: crypto.randomUUID(),
-    timestamp: Date.now(),
-  }
-  history.unshift(newEntry)
-  if (history.length > MAX_ENTRIES) history.length = MAX_ENTRIES
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history))
+export async function addTravelHistory(userId: string, entry: Omit<TravelHistoryEntry, 'id' | 'created_at' | 'user_id'>): Promise<void> {
+  const { error } = await supabase
+    .from('travel_history')
+    .insert({
+      user_id: userId,
+      origin: entry.origin,
+      destination: entry.destination,
+      origin_coords: entry.origin_coords,
+      dest_coords: entry.dest_coords,
+      distance_km: entry.distance_km,
+      duration_minutes: entry.duration_minutes,
+      charging_stops: entry.charging_stops,
+      car_name: entry.car_name,
+    })
+  if (error) console.error('Error saving history:', error)
 }
 
-export function clearRouteHistory(): void {
-  localStorage.removeItem(STORAGE_KEY)
+export async function clearTravelHistory(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('travel_history')
+    .delete()
+    .eq('user_id', userId)
+  if (error) console.error('Error clearing history:', error)
 }
 
-export function removeRouteHistoryEntry(id: string): void {
-  const history = getRouteHistory().filter((e) => e.id !== id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history))
+export async function removeTravelHistoryEntry(userId: string, id: string): Promise<void> {
+  const { error } = await supabase
+    .from('travel_history')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) console.error('Error removing entry:', error)
+}
+
+export function formatTravelDate(isoDate: string): string {
+  const d = new Date(isoDate)
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }

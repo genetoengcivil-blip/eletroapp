@@ -77,3 +77,17 @@ export interface Favorite {
   created_at: string
   station?: ChargingStation
 }
+
+export interface TravelHistoryEntry {
+  id: string
+  user_id: string
+  origin: string
+  destination: string
+  origin_coords: [number, number]
+  dest_coords: [number, number]
+  distance_km: number
+  duration_minutes: number
+  charging_stops: number
+  car_name: string
+  created_at: string
+}

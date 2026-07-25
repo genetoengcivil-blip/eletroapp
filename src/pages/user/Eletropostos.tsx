@@ -5,6 +5,8 @@ import { useAuthStore } from '../../stores/authStore'
 import type { ChargingStation } from '../../lib/types'
 import { MapView } from '../../components/map/MapView'
 import { haversineDistance } from '../../lib/route'
+import { getCachedStations, setCachedStations } from '../../lib/offline'
+import { StationCardSkeleton } from '../../components/ui/Skeleton'
 
 export function Eletropostos() {
   useAuthStore()
@@ -52,6 +54,13 @@ export function Eletropostos() {
   }, [searchParams])
 
   const fetchStations = async () => {
+    const cached = getCachedStations()
+    if (cached && cached.length > 0) {
+      setAllStations(cached)
+      setStations(cached)
+      setLoading(false)
+    }
+
     const { data } = await supabase
       .from('charging_stations')
       .select('*, subscriber:profiles!charging_stations_subscriber_id_fkey(full_name, avatar_url)')
@@ -65,8 +74,10 @@ export function Eletropostos() {
           return { ...station, avg_rating: avg, review_count: reviews?.length || 0 }
         })
       )
-      setAllStations(withRating as ChargingStation[])
-      setStations(withRating as ChargingStation[])
+      const result = withRating as ChargingStation[]
+      setAllStations(result)
+      setStations(result)
+      setCachedStations(result)
     }
     setLoading(false)
   }
@@ -234,16 +245,7 @@ export function Eletropostos() {
           {loading ? (
             <div className="space-y-3">
               {[1,2,3].map(i => (
-                <div key={i} className="animate-pulse rounded-2xl border border-gray-100 dark:border-gray-800 p-3.5">
-                  <div className="flex gap-3">
-                    <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-xl" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
-                    </div>
-                  </div>
-                </div>
+                <StationCardSkeleton key={i} />
               ))}
             </div>
           ) : filteredStations.length === 0 ? (
@@ -328,6 +330,11 @@ export function Eletropostos() {
                     </svg>
                     Rota
                   </Link>
+                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}&travelmode=driving`}
+                    target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                    className="text-[10px] py-1.5 px-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all text-center font-medium flex-1 flex items-center justify-center gap-1 active:scale-95">
+                    Maps
+                  </a>
                   <a href={`https://www.waze.com/ul?ll=${station.latitude},${station.longitude}&navigate=yes`}
                     target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                     className="text-[10px] py-1.5 px-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all text-center font-medium flex-1 flex items-center justify-center gap-1 active:scale-95">

@@ -40,8 +40,9 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
   return data.display_name || ''
 }
 
-export async function getRoute(origin: GeoPoint, destination: GeoPoint): Promise<RouteResult> {
-  const url = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`
+export async function getRoute(origin: GeoPoint, destination: GeoPoint, alternatives?: boolean): Promise<RouteResult | RouteResult[]> {
+  const altParam = alternatives ? '&alternatives=true' : ''
+  const url = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson${altParam}`
   const res = await fetch(url)
   const data = await res.json()
 
@@ -49,13 +50,17 @@ export async function getRoute(origin: GeoPoint, destination: GeoPoint): Promise
     throw new Error('Rota não encontrada')
   }
 
-  const route = data.routes[0]
-  const coords: [number, number][] = route.geometry.coordinates.map(
-    (c: [number, number]) => [c[1], c[0]]
-  )
+  if (alternatives && data.routes.length > 1) {
+    return data.routes.map((route: any) => ({
+      coordinates: route.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]),
+      distance: route.distance,
+      duration: route.duration,
+    }))
+  }
 
+  const route = data.routes[0]
   return {
-    coordinates: coords,
+    coordinates: route.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]),
     distance: route.distance,
     duration: route.duration,
   }

@@ -84,9 +84,12 @@ interface MapViewProps {
   center?: [number, number]
   onStationClick?: (station: ChargingStation) => void
   routeCoordinates?: [number, number][]
+  altRouteCoordinates?: [number, number][]
   routeOrigin?: [number, number]
   routeDestination?: [number, number]
   flyToTarget?: [number, number] | null
+  mapStyle?: 'standard' | 'terrain'
+  recommendedStopIds?: string[]
 }
 
 const createClusterIcon = (count: number) => {
@@ -98,7 +101,7 @@ const createClusterIcon = (count: number) => {
   })
 }
 
-export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292], onStationClick, routeCoordinates, routeOrigin, routeDestination, flyToTarget }: MapViewProps) {
+export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292], onStationClick, routeCoordinates, altRouteCoordinates, routeOrigin, routeDestination, flyToTarget, mapStyle = 'standard', recommendedStopIds = [] }: MapViewProps) {
   const stationOnRouteIcon = new L.DivIcon({
     className: 'station-on-route',
     html: `<div style="background:#8b5cf6;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(139,92,246,0.4)">
@@ -108,18 +111,40 @@ export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292
     iconAnchor: [14, 28],
   })
 
+  const recommendedStopIcon = new L.DivIcon({
+    className: 'rec-stop',
+    html: `<div style="background:#f59e0b;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 10px rgba(245,158,11,0.6);animation:pulse-gold 2s infinite;">
+      <span style="color:white;font-weight:bold;font-size:14px;">⚡</span>
+    </div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+  })
+
+  const tileUrl = mapStyle === 'terrain' 
+    ? 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+
+  const attribution = mapStyle === 'terrain'
+    ? '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+    : '&copy; <a href="https://carto.com/">CARTO</a>'
+
   return (
     <MapContainer center={center} zoom={12} className="h-full w-full rounded-xl" style={{ height: '100%', width: '100%' }}>
       <TileLayer
-        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        attribution={attribution}
+        url={tileUrl}
       />
       <UserLocationMarker />
       <MapFitter center={flyToTarget} zoom={14} />
       {onBoundsChange && <MapEventsHandler onBoundsChange={onBoundsChange} />}
 
+
       {routeCoordinates && routeCoordinates.length > 0 && (
         <Polyline positions={routeCoordinates} pathOptions={{ color: '#3b82f6', weight: 5, opacity: 0.8 }} />
+      )}
+
+      {altRouteCoordinates && altRouteCoordinates.length > 0 && (
+        <Polyline positions={altRouteCoordinates} pathOptions={{ color: '#f59e0b', weight: 4, opacity: 0.6, dashArray: '10 8' }} />
       )}
 
       {routeOrigin && <Marker position={routeOrigin} icon={originIcon}><Popup>Origem</Popup></Marker>}
@@ -132,12 +157,14 @@ export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292
         iconCreateFunction={(cluster: { getChildCount: () => number }) => createClusterIcon(cluster.getChildCount())}
       >
         {stations.map((station) => {
+          const isRecommended = recommendedStopIds.includes(station.id)
           const isOnRoute = routeCoordinates && routeCoordinates.length > 0
+          
           return (
             <Marker
               key={station.id}
               position={[station.latitude, station.longitude]}
-              icon={isOnRoute ? stationOnRouteIcon : stationIcon(station.power_kw)}
+              icon={isRecommended ? recommendedStopIcon : (isOnRoute ? stationOnRouteIcon : stationIcon(station.power_kw))}
               eventHandlers={{ click: () => onStationClick?.(station) }}
             >
               <Popup>

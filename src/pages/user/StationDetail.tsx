@@ -6,6 +6,8 @@ import type { ChargingStation, Review } from '../../lib/types'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
+import { addReviewPoints } from '../../lib/loyalty'
+import { getPriceAlerts, addPriceAlert, removePriceAlert } from '../../lib/priceAlerts'
 
 export function StationDetail() {
   const { id } = useParams<{ id: string }>()
@@ -23,12 +25,21 @@ export function StationDetail() {
   const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null)
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null)
+  const [hasPriceAlert, setHasPriceAlert] = useState(false)
+  const [alertTargetPrice, setAlertTargetPrice] = useState('')
+  const [showAlertInput, setShowAlertInput] = useState(false)
 
   useEffect(() => {
     if (id) {
       fetchStation()
       fetchReviews()
       checkFavorite()
+      if (user) {
+        getPriceAlerts(user.id).then(alerts => {
+          setHasPriceAlert(alerts.some(a => a.station_id === id))
+        })
+      }
     }
   }, [id])
 
@@ -83,6 +94,28 @@ export function StationDetail() {
     setShowNoteInput(false)
   }
 
+  const togglePriceAlert = async () => {
+    if (!id || !station || !user) return
+    if (hasPriceAlert) {
+      const alerts = await getPriceAlerts(user.id)
+      const alert = alerts.find(a => a.station_id === id)
+      if (alert) await removePriceAlert(user.id, alert.id)
+      setHasPriceAlert(false)
+    } else {
+      setShowAlertInput(true)
+    }
+  }
+
+  const savePriceAlert = async () => {
+    if (!id || !station || !alertTargetPrice || !user) return
+    const price = parseFloat(alertTargetPrice)
+    if (isNaN(price) || price <= 0) return
+    await addPriceAlert(user.id, id, station.name, price)
+    setHasPriceAlert(true)
+    setShowAlertInput(false)
+    setAlertTargetPrice('')
+  }
+
   const submitReview = async () => {
     if (!user || !id) return
     setReviewSubmitting(true)
@@ -103,6 +136,7 @@ export function StationDetail() {
       comment,
       photo_url: photoUrl,
     })
+    if (user) await addReviewPoints(user.id, id!)
     setShowReviewModal(false)
     setComment('')
     setRating(5)
@@ -161,6 +195,43 @@ export function StationDetail() {
               )}
             </div>
           )}
+          {!station.is_free && user && (
+            <div className="relative">
+              <Button variant="ghost" onClick={togglePriceAlert}>
+                <svg className={`w-5 h-5 ${hasPriceAlert ? 'text-amber-500' : 'text-gray-400'}`} fill={hasPriceAlert ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </Button>
+              {showAlertInput && (
+                <div className="absolute top-full right-0 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 z-50">
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Alertar quando preço ≤</p>
+                  <input type="number" step="0.1" value={alertTargetPrice} onChange={(e) => setAlertTargetPrice(e.target.value)}
+                    placeholder="R$/kWh"
+                    className="w-full px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="primary" className="text-xs py-1 px-3" onClick={savePriceAlert}>Salvar</Button>
+                    <Button variant="secondary" className="text-xs py-1 px-3" onClick={() => { setShowAlertInput(false); setAlertTargetPrice('') }}>Cancelar</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <a href={`https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}&travelmode=driving`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all active:scale-[0.98]">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            Google Maps
+          </a>
+          <a href={`https://www.waze.com/ul?ll=${station.latitude},${station.longitude}&navigate=yes`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-all active:scale-[0.98]">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            Waze
+          </a>
           <Button onClick={openRoute}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -233,8 +304,10 @@ export function StationDetail() {
                   </div>
                   {review.comment && <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{review.comment}</p>}
                   {(review as any).photo_url && (
-                    <img src={(review as any).photo_url} alt="Foto da avaliação"
-                      className="mt-2 rounded-lg max-h-48 object-cover" />
+                    <button onClick={() => setLightboxPhoto((review as any).photo_url)} className="mt-2 block">
+                      <img src={(review as any).photo_url} alt="Foto da avaliação"
+                        className="rounded-lg max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity" />
+                    </button>
                   )}
                 </div>
                 <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(review.created_at).toLocaleDateString('pt-BR')}</span>
@@ -296,6 +369,18 @@ export function StationDetail() {
           </Button>
         </div>
       </Modal>
+
+      {/* Lightbox */}
+      {lightboxPhoto && (
+        <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxPhoto(null)}>
+          <button onClick={() => setLightboxPhoto(null)} className="absolute top-4 right-4 text-white/80 hover:text-white z-10">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img src={lightboxPhoto} alt="Foto ampliada" className="max-w-full max-h-full object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   )
 }

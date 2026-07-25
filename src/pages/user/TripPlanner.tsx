@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../stores/authStore'
 import { MapView } from '../../components/map/MapView'
 import type { ChargingStation } from '../../lib/types'
 import { geocode, getRoute, getStationsNearRoute, formatDuration, formatDistance, haversineDistance, type NominatimResult, type RouteResult, type GeoPoint } from '../../lib/route'
+import { getTravelHistory, addTravelHistory, clearTravelHistory, formatTravelDate, type TravelHistoryEntry } from '../../lib/history'
+import { getCachedStations, setCachedStations } from '../../lib/offline'
+import { addTripPoints } from '../../lib/loyalty'
 
 const EV_CARS = [
   { name: 'Tesla Model 3', autonomy: 510, battery: 60, connector: 'CCS' },
@@ -47,12 +51,15 @@ function getStationAtDistance(
   cumulativeDist: number[],
   targetKm: number,
   stations: ChargingStation[],
-  maxDeviationKm: number
+  maxDeviationKm: number,
+  maxPricePerKwh?: number
 ): ChargingStation | null {
   let bestStation: ChargingStation | null = null
   let bestScore = -Infinity
 
   for (const station of stations) {
+    if (maxPricePerKwh !== undefined && !station.is_free && station.price_per_kwh > maxPricePerKwh) continue
+
     const stationPoint: GeoPoint = { lat: station.latitude, lng: station.longitude }
     let minDeviation = Infinity
     let bestIdx = 0
@@ -71,7 +78,8 @@ function getStationAtDistance(
     const stationDistOnRoute = cumulativeDist[bestIdx] || 0
     const distFromTarget = Math.abs(stationDistOnRoute - targetKm)
     const powerScore = Math.min(station.power_kw / 10, 10)
-    const score = powerScore * 2 - distFromTarget * 0.5 - minDeviation * 3
+    const priceBonus = station.is_free ? 3 : (maxPricePerKwh ? (maxPricePerKwh - station.price_per_kwh) * 0.5 : 0)
+    const score = powerScore * 2 + priceBonus - distFromTarget * 0.5 - minDeviation * 3
 
     if (score > bestScore) {
       bestScore = score
@@ -83,12 +91,14 @@ function getStationAtDistance(
 }
 
 export function TripPlanner() {
+  const { user } = useAuthStore()
   const [allStations, setAllStations] = useState<ChargingStation[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCar, setSelectedCar] = useState(EV_CARS[0])
   const [soc, setSoc] = useState(80)
   const [minSoc, setMinSoc] = useState(20)
   const [customAutonomy, setCustomAutonomy] = useState(400)
+  const [maxPricePerKwh, setMaxPricePerKwh] = useState<number>(0)
 
   const [originText, setOriginText] = useState('')
   const [originCoords, setOriginCoords] = useState<[number, number] | null>(null)
@@ -97,10 +107,14 @@ export function TripPlanner() {
   const [destCoords, setDestCoords] = useState<[number, number] | null>(null)
   const [destResults, setDestResults] = useState<NominatimResult[]>([])
   const [route, setRoute] = useState<RouteResult | null>(null)
+  const [altRoute, setAltRoute] = useState<RouteResult | null>(null)
   const [routeLoading, setRouteLoading] = useState(false)
+  const [compareMode, setCompareMode] = useState(false)
   const [routeStations, setRouteStations] = useState<ChargingStation[]>([])
   const [recommendedStops, setRecommendedStops] = useState<RecommendedStop[]>([])
   const [flyToTarget, setFlyToTarget] = useState<[number, number] | null>(null)
+  const [history, setHistory] = useState<TravelHistoryEntry[]>([])
+  const [activeTab, setActiveTab] = useState<'plan' | 'history'>('plan')
 
   const [focusOrigin, setFocusOrigin] = useState(false)
   const [focusDest, setFocusDest] = useState(false)
@@ -118,15 +132,30 @@ export function TripPlanner() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  useEffect(() => { fetchStations() }, [])
+  useEffect(() => { 
+    fetchStations() 
+    if (user) {
+      getTravelHistory(user.id).then(setHistory)
+    }
+  }, [user])
 
   const fetchStations = async () => {
+    const cached = getCachedStations()
+    if (cached && cached.length > 0) {
+      setAllStations(cached)
+      setLoading(false)
+    }
+
     const { data } = await supabase
       .from('charging_stations')
       .select('*')
       .eq('is_active', true)
       .eq('is_approved', true)
-    if (data) setAllStations(data as ChargingStation[])
+    if (data) {
+      const stations = data as ChargingStation[]
+      setAllStations(stations)
+      setCachedStations(stations)
+    }
     setLoading(false)
   }
 
@@ -187,14 +216,22 @@ export function TripPlanner() {
     if (!originCoords || !destCoords) return
     setRouteLoading(true)
     setRecommendedStops([])
+    setAltRoute(null)
     try {
-      const r = await getRoute({ lat: originCoords[0], lng: originCoords[1] }, { lat: destCoords[0], lng: destCoords[1] })
-      setRoute(r)
+      const result = await getRoute({ lat: originCoords[0], lng: originCoords[1] }, { lat: destCoords[0], lng: destCoords[1] }, compareMode)
+      
+      if (Array.isArray(result)) {
+        setRoute(result[0])
+        if (result.length > 1) setAltRoute(result[1])
+      } else {
+        setRoute(result)
+      }
 
-      const nearby = getStationsNearRoute(allStations, r.coordinates, 25)
+      const activeRoute = Array.isArray(result) ? result[0] : result
+      const nearby = getStationsNearRoute(allStations, activeRoute.coordinates, 25)
       setRouteStations(nearby)
 
-      const distanceKm = r.distance / 1000
+      const distanceKm = activeRoute.distance / 1000
       const needsCharging = distanceKm > usableRange * 0.85
 
       if (!needsCharging || nearby.length === 0) {
@@ -202,7 +239,7 @@ export function TripPlanner() {
         return
       }
 
-      const cumDist = getCumulativeDistances(r.coordinates)
+      const cumDist = getCumulativeDistances(activeRoute.coordinates)
       const totalDistance = cumDist[cumDist.length - 1]
       const stops: RecommendedStop[] = []
       const usedStationIds = new Set<string>()
@@ -213,15 +250,15 @@ export function TripPlanner() {
       for (let i = 1; i <= numStopsNeeded; i++) {
         const targetKm = segmentLength * i
         const availableStations = nearby.filter(s => !usedStationIds.has(s.id))
-        const station = getStationAtDistance(r.coordinates, cumDist, targetKm, availableStations, 25)
+        const station = getStationAtDistance(activeRoute.coordinates, cumDist, targetKm, availableStations, 25, maxPricePerKwh || undefined)
 
         if (station) {
           usedStationIds.add(station.id)
           const stationPoint: GeoPoint = { lat: station.latitude, lng: station.longitude }
           let stationIdx = 0
           let minDev = Infinity
-          for (let j = 0; j < r.coordinates.length; j += 5) {
-            const rp: GeoPoint = { lat: r.coordinates[j][0], lng: r.coordinates[j][1] }
+          for (let j = 0; j < activeRoute.coordinates.length; j += 5) {
+            const rp: GeoPoint = { lat: activeRoute.coordinates[j][0], lng: activeRoute.coordinates[j][1] }
             const dev = haversineDistance(stationPoint, rp)
             if (dev < minDev) { minDev = dev; stationIdx = j }
           }
@@ -245,6 +282,21 @@ export function TripPlanner() {
       }
 
       setRecommendedStops(stops)
+
+      if (user) {
+        await addTravelHistory(user.id, {
+          origin: originText,
+          destination: destText,
+          origin_coords: originCoords,
+          dest_coords: destCoords,
+          distance_km: activeRoute.distance / 1000,
+          duration_minutes: Math.round(activeRoute.duration / 60),
+          charging_stops: stops.length,
+          car_name: selectedCar.name,
+        })
+        setHistory(await getTravelHistory(user.id))
+        await addTripPoints(user.id, activeRoute.distance / 1000, stops.length, stops.map(s => s.station.id))
+      }
     } catch {}
     setRouteLoading(false)
   }
@@ -273,7 +325,68 @@ export function TripPlanner() {
           </div>
         </div>
 
-        {/* Car Selection */}
+        {/* Tabs */}
+        <div className="flex border-b border-gray-100 dark:border-gray-800">
+          <button onClick={() => setActiveTab('plan')}
+            className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${activeTab === 'plan' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
+            Planejar
+          </button>
+          <button onClick={() => setActiveTab('history')}
+            className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${activeTab === 'history' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
+            Histórico {history.length > 0 && <span className="ml-1 text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 rounded-full">{history.length}</span>}
+          </button>
+        </div>
+
+        {activeTab === 'history' ? (
+          <div className="p-4">
+            {history.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-xs text-gray-400">Nenhuma viagem registrada</p>
+                <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-1">As rotas planejadas aparecerão aqui</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs text-gray-400">{history.length} viagem(ns)</span>
+                  <button onClick={() => { if (user) clearTravelHistory(user.id).then(() => setHistory([])) }}
+                    className="text-[10px] text-red-500 hover:text-red-600 font-medium">Limpar tudo</button>
+                </div>
+                <div className="space-y-2">
+                  {history.map((entry) => (
+                    <div key={entry.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                      <div className="flex items-start justify-between mb-1.5">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{entry.origin}</p>
+                          <svg className="w-3 h-3 text-gray-300 dark:text-gray-600 my-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                          </svg>
+                          <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{entry.destination}</p>
+                        </div>
+                        <button onClick={() => {
+                          setOriginText(entry.origin); setOriginCoords(entry.origin_coords as [number, number])
+                          setDestText(entry.destination); setDestCoords(entry.dest_coords as [number, number])
+                          setActiveTab('plan')
+                        }} className="text-[10px] text-blue-600 dark:text-blue-400 font-medium ml-2 flex-shrink-0">Repetir</button>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                        <span>{entry.distance_km?.toFixed(0)}km</span>
+                        <span>{entry.duration_minutes}min</span>
+                        {entry.charging_stops > 0 && <span className="text-amber-500">{entry.charging_stops} parada(s)</span>}
+                        <span className="ml-auto">{formatTravelDate(entry.created_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+        <>
         <div className="p-4 border-b border-gray-100 dark:border-gray-800 space-y-3">
           <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Seu Veículo</h3>
           <select value={selectedCar.name} onChange={(e) => {
@@ -311,6 +424,19 @@ export function TripPlanner() {
             </div>
             <input type="range" min={5} max={50} value={minSoc} onChange={(e) => setMinSoc(Number(e.target.value))}
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[10px] font-medium text-gray-400 uppercase">Preço Máx. (R$/kWh)</label>
+              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{maxPricePerKwh === 0 ? 'Todos' : `R$${maxPricePerKwh}`}</span>
+            </div>
+            <input type="range" min={0} max={5} step={0.5} value={maxPricePerKwh} onChange={(e) => setMaxPricePerKwh(Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+            <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+              <span>Todos</span>
+              <span>R$5.00</span>
+            </div>
           </div>
 
           <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl p-3.5 border border-blue-100 dark:border-blue-800/30">
@@ -376,6 +502,12 @@ export function TripPlanner() {
             )}
           </div>
 
+          <label className="flex items-center gap-2 px-1 py-1.5 cursor-pointer">
+            <input type="checkbox" checked={compareMode} onChange={(e) => setCompareMode(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+            <span className="text-xs text-gray-600 dark:text-gray-400">Comparar rotas (rápida vs econômica)</span>
+          </label>
+
           <button onClick={calculateRoute} disabled={!originCoords || !destCoords || routeLoading}
             className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-medium text-sm transition-all active:scale-[0.98]">
             {routeLoading ? 'Calculando...' : 'Planejar Viagem'}
@@ -403,6 +535,46 @@ export function TripPlanner() {
               )}
               <div className="flex justify-between"><span className="text-gray-500">Eletropostos na rota</span><span className="font-semibold text-blue-600 dark:text-blue-400">{routeStations.length}</span></div>
             </div>
+          </div>
+        )}
+
+        {/* Route Comparison */}
+        {route && altRoute && (
+          <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Comparação de Rotas</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 rounded-xl border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600">
+                <div className="flex items-center gap-1 mb-1.5">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">ROTA PRINCIPAL</span>
+                </div>
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between"><span className="text-gray-500">Distância</span><span className="font-semibold text-gray-900 dark:text-white">{formatDistance(route.distance)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Tempo</span><span className="font-semibold text-gray-900 dark:text-white">{formatDuration(route.duration)}</span></div>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center gap-1 mb-1.5">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">ROTA ALTERNATIVA</span>
+                </div>
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between"><span className="text-gray-500">Distância</span><span className="font-semibold text-gray-900 dark:text-white">{formatDistance(altRoute.distance)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Tempo</span><span className="font-semibold text-gray-900 dark:text-white">{formatDuration(altRoute.duration)}</span></div>
+                </div>
+              </div>
+            </div>
+            {(() => {
+              const diffKm = Math.abs(route.distance - altRoute.distance) / 1000
+              const diffMin = Math.abs(route.duration - altRoute.duration) / 60
+              const faster = route.duration < altRoute.duration ? 'Principal' : 'Alternativa'
+              const shorter = route.distance < altRoute.distance ? 'Principal' : 'Alternativa'
+              return (
+                <div className="mt-2 text-[10px] text-gray-500 dark:text-gray-400 text-center">
+                  Rota {faster} é <span className="font-bold text-blue-600 dark:text-blue-400">{diffMin.toFixed(0)}min</span> mais rápida · Rota {shorter} é <span className="font-bold text-amber-600 dark:text-amber-400">{diffKm.toFixed(1)}km</span> mais curta
+                </div>
+              )
+            })()}
           </div>
         )}
 
@@ -509,6 +681,8 @@ export function TripPlanner() {
             </div>
           </div>
         )}
+        </>
+        )}
       </div>
 
       {/* Map */}
@@ -522,7 +696,9 @@ export function TripPlanner() {
           </div>
         ) : (
           <MapView stations={routeStations.length > 0 ? routeStations : allStations} center={[-15.7801, -47.9292]} flyToTarget={flyToTarget}
-            routeCoordinates={route?.coordinates} routeOrigin={originCoords ?? undefined} routeDestination={destCoords ?? undefined} />
+            routeCoordinates={route?.coordinates} altRouteCoordinates={altRoute?.coordinates}
+            routeOrigin={originCoords ?? undefined} routeDestination={destCoords ?? undefined}
+            recommendedStopIds={recommendedStops.map(s => s.station.id)} />
         )}
       </div>
     </div>
