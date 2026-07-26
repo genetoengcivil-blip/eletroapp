@@ -129,7 +129,7 @@ export function Eletropostos() {
   return (
     <div className="flex h-[calc(100vh-4rem)] relative">
       {/* Sidebar */}
-      <div className="hidden md:flex flex-col w-96 h-full bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex-shrink-0">
+      <div className="hidden md:flex flex-col w-96 h-full glass-strong flex-shrink-0" style={{ borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderBottom: 'none', boxShadow: 'none' }}>
         {/* Header */}
         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between mb-3">
@@ -160,7 +160,7 @@ export function Eletropostos() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input type="text" placeholder="Buscar por nome, cidade ou estado..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-9 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-gray-50 dark:bg-gray-800 dark:text-white placeholder-gray-400 transition-all" />
+              className="w-full pl-9 pr-9 py-2.5 glass-input focus:ring-0 outline-none text-sm dark:text-white placeholder-gray-400 transition-all" />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -261,10 +261,10 @@ export function Eletropostos() {
           ) : (
             filteredStations.map((station) => (
               <div key={station.id}
-                className={`group p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 hover:shadow-md ${
+                className={`group p-3.5 glass-card cursor-pointer transition-all duration-200 ${
                   selectedStation?.id === station.id
-                    ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600 shadow-md'
-                    : 'border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 bg-white dark:bg-gray-900'
+                    ? '!border-blue-400/50 dark:!border-blue-500/30 !bg-blue-50/80 dark:!bg-blue-900/20 shadow-lg'
+                    : 'hover:shadow-lg'
                 }`}
                 onClick={() => { setSelectedStation(station); setFlyToTarget([station.latitude, station.longitude]) }}>
                 
@@ -363,7 +363,7 @@ export function Eletropostos() {
         
         {/* Stats overlay */}
         <div className="absolute top-4 left-4 z-[1000] hidden sm:block">
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg px-4 py-2.5">
+          <div className="glass-panel shadow-lg px-4 py-2.5">
             <div className="flex items-center gap-4 text-sm">
               <div><span className="text-gray-400">Total:</span><span className="ml-1 font-bold text-gray-900 dark:text-white">{allStations.length}</span></div>
               <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
@@ -374,13 +374,13 @@ export function Eletropostos() {
 
         {/* Mobile search */}
         <div className="md:hidden absolute top-4 left-4 right-4 z-[1000]">
-          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-xl shadow-lg p-3">
+          <div className="glass-panel shadow-lg p-3">
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input type="text" placeholder="Buscar eletropostos..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-9 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+                className="w-full pl-9 pr-9 py-2.5 glass-input text-sm dark:text-white placeholder-gray-400 focus:ring-0 outline-none" />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

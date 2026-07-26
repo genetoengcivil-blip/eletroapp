@@ -32,7 +32,7 @@ export function BottomNav() {
   const links = profile.role === 'admin' ? adminLinks : profile.role === 'subscriber' ? subscriberLinks : userLinks
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 safe-area-pb">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-nav safe-area-pb" style={{ borderRadius: 0, borderLeft: 'none', borderRight: 'none', borderBottom: 'none' }}>
       <div className="flex items-center justify-around py-2">
         {links.map((link) => {
           const isActive = location.pathname === link.path
@@ -40,10 +40,10 @@ export function BottomNav() {
             <Link
               key={link.path}
               to={link.path}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[60px] ${
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-[60px] ${
                 isActive
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-blue-600 dark:text-blue-400 glass-card !bg-blue-500/10 dark:!bg-blue-400/10 !border-blue-200/50 dark:!border-blue-500/20 !shadow-none'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               {link.icon}

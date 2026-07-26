@@ -43,7 +43,7 @@ export function Sidebar({ role, onClose }: SidebarProps) {
   const links = role === 'admin' ? adminLinks : role === 'subscriber' ? subscriberLinks : userLinks
 
   return (
-    <aside className="hidden md:block w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 min-h-[calc(100vh-4rem)]">
+    <aside className="hidden md:block w-64 glass-strong min-h-[calc(100vh-4rem)]" style={{ borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderBottom: 'none', boxShadow: 'none' }}>
       <nav className="p-4 space-y-1">
         {links.map((link) => {
           const isActive = location.pathname === link.path
@@ -52,10 +52,10 @@ export function Sidebar({ role, onClose }: SidebarProps) {
               key={link.path}
               to={link.path}
               onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'glass-card !bg-blue-500/10 dark:!bg-blue-400/10 text-blue-700 dark:text-blue-400 !border-blue-200/50 dark:!border-blue-500/20 !shadow-none'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5 hover:shadow-sm'
               }`}
             >
               {link.icon}

@@ -68,7 +68,7 @@ export function Landing() {
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
           <div className="text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
+            <div className="inline-flex items-center gap-2 glass-badge px-4 py-2 mb-6">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               <span className="text-sm text-blue-100">Disponível agora no Brasil</span>
             </div>
@@ -117,8 +117,8 @@ export function Landing() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature) => (
-              <div key={feature.title} className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4">
+              <div key={feature.title} className="glass-card p-6 hover:shadow-lg">
+                <div className="w-12 h-12 glass-card flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 !rounded-xl">
                   {feature.icon}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
@@ -145,7 +145,7 @@ export function Landing() {
               { step: '3', title: 'Navegue até Lá', desc: 'Use Waze ou Google Maps para chegar ao eletroposto' },
             ].map((item) => (
               <div key={item.step} className="text-center">
-                <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold mx-auto mb-4 shadow-lg shadow-blue-600/30">
+                <div className="w-14 h-14 glass-btn rounded-2xl flex items-center justify-center text-white text-xl font-bold mx-auto mb-4">
                   {item.step}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{item.title}</h3>
@@ -167,10 +167,10 @@ export function Landing() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {plans.map((plan) => (
-              <div key={plan.name} className={`rounded-2xl p-6 sm:p-8 transition-all ${
+              <div key={plan.name} className={`rounded-2xl p-6 sm:p-8 transition-all duration-300 ${
                 plan.highlighted
                   ? 'bg-blue-600 text-white ring-4 ring-blue-400 shadow-xl shadow-blue-600/20 scale-[1.02]'
-                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'
+                  : 'glass-card hover:shadow-lg'
               }`}>
                 {plan.highlighted && (
                   <span className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase">
@@ -207,7 +207,7 @@ export function Landing() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 sm:py-20 bg-gradient-to-br from-gray-900 to-gray-800">
+      <section className="py-16 sm:py-20 glass-strong" style={{ borderRadius: 0 }}>
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
             Pronto para encontrar eletropostos?
@@ -215,7 +215,7 @@ export function Landing() {
           <p className="text-gray-400 mb-8 max-w-xl mx-auto">
             Cadastre-se gratuitamente e comece a usar hoje mesmo. Sem cartão de crédito.
           </p>
-          <Link to="/register" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3.5 px-8 rounded-xl transition-all text-lg inline-block shadow-lg shadow-blue-600/30">
+          <Link to="/register" className="glass-btn text-white font-semibold py-3.5 px-8 text-lg inline-block">
             Criar Conta Grátis
           </Link>
         </div>

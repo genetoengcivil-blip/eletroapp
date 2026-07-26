@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { ChargingStation, Review } from '../../lib/types'
-import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
 import { addReviewPoints } from '../../lib/loyalty'
@@ -157,13 +156,13 @@ export function StationDetail() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <Link to="/dashboard" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium mb-4 inline-block">
+      <Link to="/dashboard" className="glass-btn-secondary inline-flex items-center gap-1.5 px-4 py-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium mb-4">
         ← Voltar ao mapa
       </Link>
 
       {station.image_url && (
         <img src={station.image_url} alt={station.name}
-          className="w-full h-64 object-cover rounded-xl mb-6" />
+          className="w-full h-64 object-cover rounded-2xl mb-6" />
       )}
 
       <div className="flex items-start justify-between mb-6">
@@ -218,7 +217,7 @@ export function StationDetail() {
           )}
           <a href={`https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}&travelmode=driving`}
             target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all active:scale-[0.98]">
+            className="inline-flex items-center gap-1.5 px-4 py-2 glass-btn text-white text-sm font-medium">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
             </svg>
@@ -226,7 +225,7 @@ export function StationDetail() {
           </a>
           <a href={`https://www.waze.com/ul?ll=${station.latitude},${station.longitude}&navigate=yes`}
             target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-all active:scale-[0.98]">
+            className="inline-flex items-center gap-1.5 px-4 py-2 glass-btn text-white text-sm font-medium" style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.9), rgba(22,163,74,0.9))' }}>
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
@@ -242,29 +241,29 @@ export function StationDetail() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
+        <div className="glass-card p-5">
           <p className="text-sm text-gray-500 dark:text-gray-400">Potência</p>
           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{station.power_kw} kW</p>
-        </Card>
-        <Card>
+        </div>
+        <div className="glass-card p-5">
           <p className="text-sm text-gray-500 dark:text-gray-400">Preço por kWh</p>
           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">R$ {station.price_per_kwh}</p>
-        </Card>
-        <Card>
+        </div>
+        <div className="glass-card p-5">
           <p className="text-sm text-gray-500 dark:text-gray-400">Horário</p>
           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{station.operating_hours}</p>
-        </Card>
+        </div>
       </div>
 
       {station.description && (
-        <Card className="mb-6">
+        <div className="glass-card p-5 mb-6">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Descrição</h3>
           <p className="text-gray-600 dark:text-gray-400">{station.description}</p>
-        </Card>
+        </div>
       )}
 
       {station.connector_types?.length > 0 && (
-        <Card className="mb-6">
+        <div className="glass-card p-5 mb-6">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Conectores</h3>
           <div className="flex flex-wrap gap-2">
             {station.connector_types.map((type) => (
@@ -273,7 +272,7 @@ export function StationDetail() {
               </span>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Reviews */}
@@ -291,7 +290,7 @@ export function StationDetail() {
           <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhuma avaliação ainda</p>
         ) : (
           reviews.map((review) => (
-            <Card key={review.id}>
+            <div key={review.id} className="glass-card p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">{review.user?.full_name}</p>
@@ -312,7 +311,7 @@ export function StationDetail() {
                 </div>
                 <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(review.created_at).toLocaleDateString('pt-BR')}</span>
               </div>
-            </Card>
+            </div>
           ))
         )}
       </div>

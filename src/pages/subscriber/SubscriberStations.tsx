@@ -170,13 +170,13 @@ export function SubscriberStations() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Meus Eletropostos</h1>
-        <Button onClick={openNewStation}>+ Novo Eletroposto</Button>
+        <Button onClick={openNewStation} className="glass-btn">+ Novo Eletroposto</Button>
       </div>
 
       {/* State filter */}
       <div className="flex items-center gap-3 mb-4">
         <select value={filterState} onChange={(e) => setFilterState(e.target.value)}
-          className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white">
+          className="px-3 py-2 glass-input text-sm focus:ring-0 outline-none dark:text-white">
           <option value="">Todos os estados</option>
           {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(s => (
             <option key={s} value={s}>{s}</option>

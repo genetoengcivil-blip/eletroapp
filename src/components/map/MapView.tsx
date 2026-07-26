@@ -90,6 +90,8 @@ interface MapViewProps {
   flyToTarget?: [number, number] | null
   mapStyle?: 'standard' | 'terrain'
   recommendedStopIds?: string[]
+  stopOrderMap?: Record<string, number>
+  showOnlyRecommendedStops?: boolean
 }
 
 const createClusterIcon = (count: number) => {
@@ -101,7 +103,7 @@ const createClusterIcon = (count: number) => {
   })
 }
 
-export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292], onStationClick, routeCoordinates, altRouteCoordinates, routeOrigin, routeDestination, flyToTarget, mapStyle = 'standard', recommendedStopIds = [] }: MapViewProps) {
+export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292], onStationClick, routeCoordinates, altRouteCoordinates, routeOrigin, routeDestination, flyToTarget, mapStyle = 'standard', recommendedStopIds = [], stopOrderMap = {}, showOnlyRecommendedStops = false }: MapViewProps) {
   const stationOnRouteIcon = new L.DivIcon({
     className: 'station-on-route',
     html: `<div style="background:#8b5cf6;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(139,92,246,0.4)">
@@ -111,13 +113,16 @@ export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292
     iconAnchor: [14, 28],
   })
 
-  const recommendedStopIcon = new L.DivIcon({
+  const makeRecommendedStopIcon = (order: number) => new L.DivIcon({
     className: 'rec-stop',
-    html: `<div style="background:#f59e0b;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 10px rgba(245,158,11,0.6);animation:pulse-gold 2s infinite;">
-      <span style="color:white;font-weight:bold;font-size:14px;">⚡</span>
+    html: `<div style="background:linear-gradient(135deg,#f59e0b,#f97316);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 12px rgba(245,158,11,0.6);animation:pulse-gold 2s infinite;position:relative;">
+      <span style="color:white;font-weight:900;font-size:14px;text-shadow:0 1px 2px rgba(0,0,0,0.2);">${order}</span>
+      <div style="position:absolute;top:-4px;right:-4px;background:#2563eb;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid white;">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
     </div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
   })
 
   const tileUrl = mapStyle === 'terrain' 
@@ -156,17 +161,23 @@ export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292
         spiderfyOnMaxZoom={true}
         iconCreateFunction={(cluster: { getChildCount: () => number }) => createClusterIcon(cluster.getChildCount())}
       >
-        {stations.map((station) => {
-          const isRecommended = recommendedStopIds.includes(station.id)
-          const isOnRoute = routeCoordinates && routeCoordinates.length > 0
+        {(() => {
+          const displayStations = showOnlyRecommendedStops && recommendedStopIds.length > 0
+            ? stations.filter(s => recommendedStopIds.includes(s.id))
+            : stations
           
-          return (
-            <Marker
-              key={station.id}
-              position={[station.latitude, station.longitude]}
-              icon={isRecommended ? recommendedStopIcon : (isOnRoute ? stationOnRouteIcon : stationIcon(station.power_kw))}
-              eventHandlers={{ click: () => onStationClick?.(station) }}
-            >
+          return displayStations.map((station) => {
+            const order = stopOrderMap[station.id]
+            const isRecommended = order !== undefined
+            const isOnRoute = routeCoordinates && routeCoordinates.length > 0 && !showOnlyRecommendedStops
+            
+            return (
+              <Marker
+                key={station.id}
+                position={[station.latitude, station.longitude]}
+                icon={isRecommended ? makeRecommendedStopIcon(order) : (isOnRoute ? stationOnRouteIcon : stationIcon(station.power_kw))}
+                eventHandlers={{ click: () => onStationClick?.(station) }}
+              >
               <Popup>
                 <div className="min-w-[220px] max-w-[280px]">
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -212,7 +223,8 @@ export function MapView({ stations, onBoundsChange, center = [-15.7801, -47.9292
               </Popup>
             </Marker>
           )
-        })}
+          })
+        })()}
       </MarkerClusterGroup>
     </MapContainer>
   )

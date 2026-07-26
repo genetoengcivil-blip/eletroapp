@@ -39,7 +39,7 @@ export function SubscriberDashboard() {
   return (
     <div className="p-4 sm:p-6">
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold overflow-hidden flex-shrink-0">
+        <div className="w-12 h-12 rounded-full glass-btn flex items-center justify-center text-white text-lg font-bold overflow-hidden flex-shrink-0">
           {profile?.avatar_url
             ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
             : profile?.full_name ? initials(profile.full_name) : '?'}

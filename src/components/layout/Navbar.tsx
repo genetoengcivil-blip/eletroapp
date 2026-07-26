@@ -31,7 +31,7 @@ export function Navbar() {
   const initials = (name: string) => name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase()
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
+    <nav className="sticky top-0 z-50 glass-nav">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-14 sm:h-16 items-center">
           <div className="flex items-center gap-3">
@@ -44,7 +44,7 @@ export function Navbar() {
               </button>
             )}
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 glass-btn rounded-xl flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -56,7 +56,7 @@ export function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Dark mode toggle */}
             <button onClick={toggle}
-              className="p-2 rounded-lg transition-colors bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="p-2 rounded-xl glass-btn-secondary text-gray-600 dark:text-yellow-400"
               title={dark ? 'Modo claro' : 'Modo escuro'}>
               {dark ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +86,7 @@ export function Navbar() {
                     </button>
 
                     {showSwitcher && (
-                      <div className="absolute right-0 mt-2 w-64 rounded-xl shadow-xl z-50 overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                      <div className="absolute right-0 mt-2 w-64 glass-panel z-50 overflow-hidden">
                         <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                           <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Trocar conta</p>
                         </div>

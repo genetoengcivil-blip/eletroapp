@@ -310,10 +310,10 @@ export function TripPlanner() {
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       {/* Sidebar */}
-      <div className="w-96 h-full bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 overflow-y-auto flex-shrink-0 hidden md:block">
+      <div className="w-96 h-full glass-strong overflow-y-auto flex-shrink-0 hidden md:block" style={{ borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderBottom: 'none', boxShadow: 'none' }}>
         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl glass-btn flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -387,12 +387,12 @@ export function TripPlanner() {
           </div>
         ) : (
         <>
-        <div className="p-4 border-b border-gray-100 dark:border-gray-800 space-y-3">
+          <div className="p-4 border-b border-white/10 dark:border-white/5 space-y-3">
           <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Seu Veículo</h3>
           <select value={selectedCar.name} onChange={(e) => {
             const car = EV_CARS.find(c => c.name === e.target.value)
             if (car) setSelectedCar(car)
-          }} className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
+          }} className="w-full px-3 py-2.5 glass-input text-sm dark:text-white focus:ring-0 outline-none">
             {EV_CARS.map(car => <option key={car.name} value={car.name}>{car.name}</option>)}
           </select>
 
@@ -400,7 +400,7 @@ export function TripPlanner() {
             <div>
               <label className="text-[10px] font-medium text-gray-400 uppercase">Autonomia (km)</label>
               <input type="number" value={customAutonomy} onChange={(e) => setCustomAutonomy(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                className="w-full px-3 py-2 glass-input text-sm dark:text-white focus:ring-0 outline-none" />
             </div>
           )}
 
@@ -439,7 +439,7 @@ export function TripPlanner() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl p-3.5 border border-blue-100 dark:border-blue-800/30">
+          <div className="glass-card p-3.5">
             <div className="grid grid-cols-2 gap-3">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{usableRange.toFixed(0)}</div>
@@ -454,7 +454,7 @@ export function TripPlanner() {
         </div>
 
         {/* Route Planning */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-800 space-y-3">
+        <div className="p-4 border-b border-white/10 dark:border-white/5 space-y-3">
           <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rota</h3>
           <div ref={originRef} className="relative">
             <label className="block text-[10px] font-medium text-gray-400 uppercase mb-1">Origem</label>
@@ -462,18 +462,18 @@ export function TripPlanner() {
               <input type="text" placeholder="Digite ou use GPS..."
                 value={originText} onChange={(e) => handleOriginInput(e.target.value)}
                 onFocus={() => originResults.length > 0 && setFocusOrigin(true)}
-                className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                className="flex-1 px-3 py-2 glass-input text-sm dark:text-white focus:ring-0 outline-none" />
               <button type="button" onClick={useGps} title="Usar minha localização"
-                className="px-2.5 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
+                className="px-2.5 py-2 glass-btn-secondary text-blue-600 dark:text-blue-400">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
                 </svg>
               </button>
             </div>
             {focusOrigin && originResults.length > 0 && (
-              <div className="absolute z-[9999] mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-[9999] mt-1 w-full glass-panel shadow-lg max-h-48 overflow-y-auto">
                 {originResults.map((r, i) => (
-                  <button key={i} type="button" className="w-full text-left px-3 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                  <button key={i} type="button" className="w-full text-left px-3 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-white/5 border-b border-white/5 last:border-b-0"
                     onMouseDown={(e) => { e.preventDefault(); selectOrigin(r) }}>
                     <div className="font-medium">{r.display_name.split(',')[0]}</div>
                     <div className="text-gray-400 text-[10px] mt-0.5 truncate">{r.display_name.split(',').slice(1, 4).join(',')}</div>
@@ -488,11 +488,11 @@ export function TripPlanner() {
             <input type="text" placeholder="Para onde vai?"
               value={destText} onChange={(e) => handleDestInput(e.target.value)}
               onFocus={() => destResults.length > 0 && setFocusDest(true)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+              className="w-full px-3 py-2 glass-input text-sm dark:text-white focus:ring-0 outline-none" />
             {focusDest && destResults.length > 0 && (
-              <div className="absolute z-[9999] mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-[9999] mt-1 w-full glass-panel shadow-lg max-h-48 overflow-y-auto">
                 {destResults.map((r, i) => (
-                  <button key={i} type="button" className="w-full text-left px-3 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                  <button key={i} type="button" className="w-full text-left px-3 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-white/5 border-b border-white/5 last:border-b-0"
                     onMouseDown={(e) => { e.preventDefault(); selectDest(r) }}>
                     <div className="font-medium">{r.display_name.split(',')[0]}</div>
                     <div className="text-gray-400 text-[10px] mt-0.5 truncate">{r.display_name.split(',').slice(1, 4).join(',')}</div>
@@ -509,15 +509,15 @@ export function TripPlanner() {
           </label>
 
           <button onClick={calculateRoute} disabled={!originCoords || !destCoords || routeLoading}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-medium text-sm transition-all active:scale-[0.98]">
+            className="w-full py-2.5 glass-btn text-white font-medium text-sm disabled:opacity-50">
             {routeLoading ? 'Calculando...' : 'Planejar Viagem'}
           </button>
         </div>
 
         {/* Route Summary */}
         {route && (
-          <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-            <div className={`rounded-xl p-3.5 text-xs ${!needsCharging ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 text-green-800 dark:text-green-300' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-300'}`}>
+          <div className="p-4 border-b border-white/10 dark:border-white/5">
+            <div className={`glass-card p-3.5 text-xs ${!needsCharging ? '!border-green-200/50 dark:!border-green-500/20 !bg-green-50/80 dark:!bg-green-900/15 text-green-800 dark:text-green-300' : '!border-amber-200/50 dark:!border-amber-500/20 !bg-amber-50/80 dark:!bg-amber-900/15 text-amber-800 dark:text-amber-300'}`}>
               <p className="font-medium mb-1">{!needsCharging ? 'Trajeto Direto' : `${chargeStopsNeeded} parada(s) necessária(s)`}</p>
               <p>{!needsCharging
                 ? `Autonomia de ${usableRange.toFixed(0)}km é suficiente para ${distanceKm.toFixed(0)}km.`
@@ -540,10 +540,10 @@ export function TripPlanner() {
 
         {/* Route Comparison */}
         {route && altRoute && (
-          <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="p-4 border-b border-white/10 dark:border-white/5">
             <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Comparação de Rotas</h3>
             <div className="grid grid-cols-2 gap-2">
-              <div className="p-3 rounded-xl border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600">
+              <div className="glass-card p-3 !border-blue-400/50 dark:!border-blue-500/30 !bg-blue-50/80 dark:!bg-blue-900/15">
                 <div className="flex items-center gap-1 mb-1.5">
                   <div className="w-2 h-2 rounded-full bg-blue-500" />
                   <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">ROTA PRINCIPAL</span>
@@ -553,7 +553,7 @@ export function TripPlanner() {
                   <div className="flex justify-between"><span className="text-gray-500">Tempo</span><span className="font-semibold text-gray-900 dark:text-white">{formatDuration(route.duration)}</span></div>
                 </div>
               </div>
-              <div className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <div className="glass-card p-3">
                 <div className="flex items-center gap-1 mb-1.5">
                   <div className="w-2 h-2 rounded-full bg-amber-500" />
                   <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">ROTA ALTERNATIVA</span>
@@ -698,7 +698,9 @@ export function TripPlanner() {
           <MapView stations={routeStations.length > 0 ? routeStations : allStations} center={[-15.7801, -47.9292]} flyToTarget={flyToTarget}
             routeCoordinates={route?.coordinates} altRouteCoordinates={altRoute?.coordinates}
             routeOrigin={originCoords ?? undefined} routeDestination={destCoords ?? undefined}
-            recommendedStopIds={recommendedStops.map(s => s.station.id)} />
+            recommendedStopIds={recommendedStops.map(s => s.station.id)}
+            stopOrderMap={Object.fromEntries(recommendedStops.map((s, i) => [s.station.id, i + 1]))}
+            showOnlyRecommendedStops={!!route && recommendedStops.length > 0} />
         )}
       </div>
     </div>

@@ -60,7 +60,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/eletropostos" element={
-            <ProtectedRoute allowedRoles={['user']}>
+            <ProtectedRoute allowedRoles={['user', 'subscriber', 'admin']}>
               <Navbar />
               <DashboardLayout role="user">
                 <Eletropostos />

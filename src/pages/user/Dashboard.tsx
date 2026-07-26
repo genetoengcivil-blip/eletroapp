@@ -101,7 +101,7 @@ export function UserDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {stats.map((s) => (
           <Link key={s.label} to={s.link}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
+            className="relative overflow-hidden glass-card p-5 text-white hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-90`} />
             <div className="relative flex items-center justify-between">
               <div>
@@ -124,7 +124,7 @@ export function UserDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {quickActions.map((a) => (
             <Link key={a.label} to={a.link}
-              className={`${a.color} text-white rounded-xl p-4 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-md`}>
+              className={`${a.color} text-white rounded-2xl p-4 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg`}>
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={a.icon} />
@@ -144,7 +144,7 @@ export function UserDashboard() {
         const level = getLoyaltyLevel(loyalty.totalPoints)
         const progress = level.nextLevel > 0 ? (loyalty.totalPoints / level.nextLevel) * 100 : 100
         return (
-          <div className="mb-8 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+          <div className="mb-8 glass-card p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Programa de Fidelidade</h2>
               <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: `${level.color}20`, color: level.color }}>
@@ -184,7 +184,7 @@ export function UserDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {nearbyStations.map((station) => (
               <Link key={station.id} to={`/dashboard/station/${station.id}`}
-                className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700 transition-all duration-300">
+                className="glass-card p-4 hover:shadow-lg transition-all duration-300">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${powerColor(station.power_kw)}15` }}>
                     <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: powerColor(station.power_kw) }}>

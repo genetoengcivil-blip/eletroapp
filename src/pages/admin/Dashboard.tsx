@@ -16,7 +16,7 @@ function BarChart({ data, title }: { data: { label: string; value: number; color
               <span className="text-gray-600 dark:text-gray-400">{item.label}</span>
               <span className="font-semibold text-gray-800 dark:text-gray-200">{item.value}</span>
             </div>
-            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+            <div className="w-full glass-input rounded-full h-2 !p-0 !border-0" style={{ background: 'rgba(0,0,0,0.06)' }}>
               <div
                 className="h-2 rounded-full transition-all duration-500"
                 style={{ width: `${(item.value / max) * 100}%`, background: item.color }}
