@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../stores/authStore'
 import type { ChargingStation } from '../../lib/types'
 import { MapView } from '../../components/map/MapView'
 import { haversineDistance } from '../../lib/route'
@@ -9,7 +8,6 @@ import { getCachedStations, setCachedStations } from '../../lib/offline'
 import { StationCardSkeleton } from '../../components/ui/Skeleton'
 
 export function Eletropostos() {
-  useAuthStore()
   const [stations, setStations] = useState<ChargingStation[]>([])
   const [allStations, setAllStations] = useState<ChargingStation[]>([])
   const [selectedStation, setSelectedStation] = useState<ChargingStation | null>(null)
@@ -82,21 +80,28 @@ export function Eletropostos() {
     setLoading(false)
   }
 
-  const filteredStations = stations.filter(
-    (s) => {
-      const q = searchQuery.toLowerCase()
-      const matchesSearch = !q ||
-        s.name.toLowerCase().includes(q) ||
-        s.city.toLowerCase().includes(q) ||
-        s.state.toLowerCase().includes(q) ||
-        (s.address && s.address.toLowerCase().includes(q))
-      return matchesSearch &&
-        s.power_kw >= filterPower &&
-        (!filterFreeOnly || s.is_free) &&
-        (!filterConnector || s.connector_types?.includes(filterConnector)) &&
-        (!filterState || s.state === filterState)
-    }
-  )
+  const filteredStations = stations
+    .filter(
+      (s) => {
+        const q = searchQuery.toLowerCase()
+        const matchesSearch = !q ||
+          s.name.toLowerCase().includes(q) ||
+          s.city.toLowerCase().includes(q) ||
+          s.state.toLowerCase().includes(q) ||
+          (s.address && s.address.toLowerCase().includes(q))
+        return matchesSearch &&
+          s.power_kw >= filterPower &&
+          (!filterFreeOnly || s.is_free) &&
+          (!filterConnector || s.connector_types?.includes(filterConnector)) &&
+          (!filterState || s.state === filterState)
+      }
+    )
+    .sort((a, b) => {
+      if (!userLocation) return 0
+      const dA = haversineDistance({ lat: userLocation[0], lng: userLocation[1] }, { lat: a.latitude, lng: a.longitude })
+      const dB = haversineDistance({ lat: userLocation[0], lng: userLocation[1] }, { lat: b.latitude, lng: b.longitude })
+      return dA - dB
+    })
 
   const isStationOpen = (hours: string): boolean => {
     if (!hours || hours.toLowerCase().includes('24h')) return true
@@ -145,12 +150,30 @@ export function Eletropostos() {
               </div>
             </div>
             <div className="flex items-center gap-1.5">
+              <button onClick={() => {
+                navigator.geolocation?.getCurrentPosition(
+                  (pos) => {
+                    const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude]
+                    setUserLocation(loc)
+                    setFlyToTarget(loc)
+                  },
+                  () => {},
+                  { enableHighAccuracy: true, timeout: 10000 }
+                )
+              }}
+                className={`p-2 rounded-lg transition-colors ${userLocation ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                title="Usar minha localização">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
               <Link to="/dashboard/trip-planner"
                 className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                Planejar Viagem
+                Rota
               </Link>
             </div>
           </div>
@@ -388,10 +411,37 @@ export function Eletropostos() {
               )}
             </div>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-[10px] text-gray-400">{filteredStations.length} resultado{filteredStations.length !== 1 ? 's' : ''}</span>
-              <button onClick={() => setShowFilters(!showFilters)} className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                {showFilters ? 'Fechar' : 'Filtros'}
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-400">{filteredStations.length} resultado{filteredStations.length !== 1 ? 's' : ''}</span>
+                {userLocation && (
+                  <span className="text-[10px] text-blue-500 dark:text-blue-400 font-medium flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                    GPS ativo
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => {
+                  navigator.geolocation?.getCurrentPosition(
+                    (pos) => {
+                      const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude]
+                      setUserLocation(loc)
+                      setFlyToTarget(loc)
+                    },
+                    () => {},
+                    { enableHighAccuracy: true, timeout: 10000 }
+                  )
+                }} className={`text-[10px] font-medium flex items-center gap-1 ${userLocation ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  GPS
+                </button>
+                <button onClick={() => setShowFilters(!showFilters)} className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                  {showFilters ? 'Fechar' : 'Filtros'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

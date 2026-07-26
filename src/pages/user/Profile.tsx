@@ -1,14 +1,11 @@
 import { useState, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../stores/authStore'
 import { useAuth } from '../../hooks/useAuth'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 
 export function Profile() {
-  const { user } = useAuthStore()
-  const { profile, loading: authLoading } = useAuth()
-  const { fetchProfile } = useAuthStore()
+  const { user, profile, loading: authLoading, fetchProfile } = useAuth()
   const [fullName, setFullName] = useState(profile?.full_name || '')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(profile?.avatar_url || null)

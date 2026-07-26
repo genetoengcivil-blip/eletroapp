@@ -64,36 +64,45 @@ export function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4" style={{ backgroundImage: 'radial-gradient(ellipse at 30% 20%, rgba(37, 99, 235, 0.06) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(59, 130, 246, 0.04) 0%, transparent 50%)' }}>
-      <div className="max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 relative overflow-hidden">
+      {/* Background orbs */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 right-20 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-20 w-80 h-80 bg-blue-400/4 rounded-full blur-3xl" />
+      </div>
+
+      <div className="max-w-md w-full relative">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 glass-btn rounded-xl flex items-center justify-center">
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-8">
+            <div className="w-11 h-11 glass-btn rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-2xl font-bold text-gray-900">EletroApp</span>
+            <span className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">EletroApp</span>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Criar sua conta</h1>
-          <p className="text-gray-500 mt-2">Comece a encontrar eletropostos</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Criar sua conta</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">Comece a encontrar eletropostos</p>
         </div>
 
         <div className="glass-panel p-8">
           {success ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="text-center py-8 animate-slide-up">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Conta criada!</h3>
-              <p className="text-gray-500">Redirecionando para o login...</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Conta criada!</h3>
+              <p className="text-gray-500 dark:text-gray-400">Redirecionando para o login...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
-                <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg">
+                <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm p-4 rounded-xl border border-red-100 dark:border-red-800/30 flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   {error}
                 </div>
               )}
@@ -134,18 +143,15 @@ export function Register() {
                 required
               />
 
-              <div className="flex items-center gap-3">
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <input
                   type="checkbox"
-                  id="subscriber"
                   checked={isSubscriber}
                   onChange={(e) => setIsSubscriber(e.target.checked)}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <label htmlFor="subscriber" className="text-sm text-gray-700">
-                  Sou proprietário de eletropostos
-                </label>
-              </div>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Sou proprietário de eletropostos</span>
+              </label>
 
               <Button type="submit" loading={loading} className="w-full">
                 Criar Conta
@@ -154,9 +160,9 @@ export function Register() {
           )}
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Já tem uma conta?{' '}
-              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+              <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors">
                 Entrar
               </Link>
             </p>

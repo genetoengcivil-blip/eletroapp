@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './components/auth/AuthProvider'
 import { Navbar } from './components/layout/Navbar'
 import { Sidebar } from './components/layout/Sidebar'
 import { BottomNav } from './components/layout/BottomNav'
@@ -30,6 +32,20 @@ import { AdminPlans } from './pages/admin/AdminPlans'
 
 import './index.css'
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative">
+          <div className="w-12 h-12 border-4 border-blue-200 dark:border-blue-800 rounded-full" />
+          <div className="absolute inset-0 w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Carregando...</p>
+      </div>
+    </div>
+  )
+}
+
 function DashboardLayout({ children, role }: { children: React.ReactNode; role: 'user' | 'subscriber' | 'admin' }) {
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">
@@ -43,8 +59,10 @@ function DashboardLayout({ children, role }: { children: React.ReactNode; role: 
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col">
-        <Routes>
+      <AuthProvider>
+        <div className="min-h-screen flex flex-col">
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
           {/* Public Routes */}
           <Route path="/" element={<><Navbar /><Landing /><Footer /></>} />
           <Route path="/login" element={<Login />} />
@@ -194,8 +212,10 @@ function App() {
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
+          </Routes>
+          </Suspense>
+        </div>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

@@ -1,39 +1,26 @@
-import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuthContext } from '../components/auth/AuthProvider'
 import { useAuthStore } from '../stores/authStore'
 
 export function useAuth() {
-  const { user, profile, loading, setLoading, setUser, setProfile, fetchProfile, signOut } = useAuthStore()
+  const { user, profile, loading } = useAuthContext()
   const navigate = useNavigate()
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
-        setLoading(false)
-      }
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
-        setProfile(null)
-        setLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+  const signOut = useAuthStore((s) => s.signOut)
 
   const handleSignOut = async () => {
     await signOut()
     navigate('/login')
   }
 
-  return { user, profile, loading, handleSignOut }
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    return data
+  }
+
+  return { user, profile, loading, handleSignOut, fetchProfile }
 }

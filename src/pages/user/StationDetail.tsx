@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../stores/authStore'
+import { useAuth } from '../../hooks/useAuth'
 import type { ChargingStation, Review } from '../../lib/types'
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
@@ -10,7 +10,7 @@ import { getPriceAlerts, addPriceAlert, removePriceAlert } from '../../lib/price
 
 export function StationDetail() {
   const { id } = useParams<{ id: string }>()
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [station, setStation] = useState<ChargingStation | null>(null)
   const [reviews, setReviews] = useState<(Review & { user: { full_name: string } })[]>([])

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../stores/authStore'
+import { useAuth } from '../../hooks/useAuth'
 import type { SubscriptionPlan, Subscription } from '../../lib/types'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 
 export function SubscriberSubscription() {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [currentSub, setCurrentSub] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)

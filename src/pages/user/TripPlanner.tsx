@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../stores/authStore'
+import { useAuth } from '../../hooks/useAuth'
 import { MapView } from '../../components/map/MapView'
 import type { ChargingStation } from '../../lib/types'
 import { geocode, getRoute, getStationsNearRoute, formatDuration, formatDistance, haversineDistance, type NominatimResult, type RouteResult, type GeoPoint } from '../../lib/route'
@@ -91,7 +91,7 @@ function getStationAtDistance(
 }
 
 export function TripPlanner() {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const [allStations, setAllStations] = useState<ChargingStation[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCar, setSelectedCar] = useState(EV_CARS[0])

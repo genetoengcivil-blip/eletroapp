@@ -17,8 +17,7 @@ export function Navbar() {
 
   useEffect(() => {
     setAccounts(getStoredAccounts())
-    document.documentElement.classList.toggle('dark', dark)
-  }, [user, dark])
+  }, [user])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

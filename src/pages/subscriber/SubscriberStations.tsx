@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../stores/authStore'
+import { useAuth } from '../../hooks/useAuth'
 import { geocode, reverseGeocode } from '../../lib/route'
 import type { ChargingStation } from '../../lib/types'
 import { Card } from '../../components/ui/Card'
@@ -13,7 +13,7 @@ interface ViaCepResult {
 }
 
 export function SubscriberStations() {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const [stations, setStations] = useState<ChargingStation[]>([])
   const [loading, setLoading] = useState(true)
   const [filterState, setFilterState] = useState('')

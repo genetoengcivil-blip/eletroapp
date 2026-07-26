@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../stores/authStore'
+import { useAuth } from '../../hooks/useAuth'
 import type { Review, ChargingStation } from '../../lib/types'
 import { Card } from '../../components/ui/Card'
 
 export function UserReviews() {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const [reviews, setReviews] = useState<(Review & { station: ChargingStation })[]>([])
   const [loading, setLoading] = useState(true)
 

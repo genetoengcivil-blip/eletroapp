@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../stores/authStore'
+import { useAuth } from '../../hooks/useAuth'
 import type { Favorite, ChargingStation } from '../../lib/types'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 
 export function Favorites() {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const [favorites, setFavorites] = useState<(Favorite & { station: ChargingStation })[]>([])
   const [loading, setLoading] = useState(true)
 

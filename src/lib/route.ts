@@ -16,28 +16,41 @@ export interface NominatimResult {
   address?: Record<string, string>
 }
 
+const geocodeCache = new Map<string, NominatimResult[]>()
+
 export async function geocode(query: string): Promise<NominatimResult[]> {
+  const key = query.trim().toLowerCase()
+  if (geocodeCache.has(key)) return geocodeCache.get(key)!
+  if (key.length < 3) return []
+
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&countrycodes=br&addressdetails=1`
   const res = await fetch(url, {
     headers: { 'User-Agent': 'EletroApp/1.0 (contato@eletroapp.com)' }
   })
   if (!res.ok) return []
   const results = await res.json()
-  return results.filter((r: NominatimResult) => {
+  const filtered = results.filter((r: NominatimResult) => {
     const lat = parseFloat(r.lat)
     const lng = parseFloat(r.lon)
     return lat >= -34 && lat <= 5 && lng >= -75 && lng <= -35
   })
+  geocodeCache.set(key, filtered)
+  return filtered
 }
 
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  const key = `_rev_${lat.toFixed(4)},${lng.toFixed(4)}`
+  if (geocodeCache.has(key)) return geocodeCache.get(key)![0]?.display_name ?? ''
+
   const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
   const res = await fetch(url, {
     headers: { 'User-Agent': 'EletroApp/1.0 (contato@eletroapp.com)' }
   })
   if (!res.ok) return ''
   const data = await res.json()
-  return data.display_name || ''
+  const name = data.display_name || ''
+  geocodeCache.set(key, [{ display_name: name, lat: String(lat), lon: String(lng) }])
+  return name
 }
 
 export async function getRoute(origin: GeoPoint, destination: GeoPoint, alternatives?: boolean): Promise<RouteResult | RouteResult[]> {
