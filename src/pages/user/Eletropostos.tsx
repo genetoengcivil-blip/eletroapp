@@ -305,7 +305,12 @@ export function Eletropostos() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight truncate">{station.name}</h3>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight truncate">{station.name}</h3>
+                        {(station as any).subscriber_id && (
+                          <span className="text-[8px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold flex-shrink-0">PARCEIRO</span>
+                        )}
+                      </div>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 ${
                         isStationOpen(station.operating_hours)
                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'

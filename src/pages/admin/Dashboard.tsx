@@ -156,12 +156,15 @@ export function AdminDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
         {statCards.map((s) => (
-          <div key={s.label} className="glass-card p-4">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: s.color + '15' }}>
-              <svg className="w-4.5 h-4.5" style={{ color: s.color }} fill="none" stroke="currentColor" viewBox="0 0 24 24">{s.icon}</svg>
+          <div key={s.label} className="relative overflow-hidden rounded-2xl p-4 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-850" />
+            <div className="relative">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: s.color + '18' }}>
+                <svg className="w-4.5 h-4.5" style={{ color: s.color }} fill="none" stroke="currentColor" viewBox="0 0 24 24">{s.icon}</svg>
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{s.label}</p>
+              <p className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{s.value}</p>
             </div>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{s.label}</p>
-            <p className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{s.value}</p>
           </div>
         ))}
       </div>

@@ -195,7 +195,12 @@ export function UserDashboard() {
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-sm text-gray-900 dark:text-white truncate">{station.name}</h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-bold text-sm text-gray-900 dark:text-white truncate">{station.name}</h3>
+                      {station.subscriber_id && (
+                        <span className="text-[8px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold flex-shrink-0">PARCEIRO</span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{station.city} - {station.state}</p>
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <span className="text-[10px] font-bold" style={{ color: powerColor(station.power_kw) }}>{station.power_kw}kW</span>

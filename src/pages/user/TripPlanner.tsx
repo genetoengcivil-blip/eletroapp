@@ -79,7 +79,8 @@ function getStationAtDistance(
     const distFromTarget = Math.abs(stationDistOnRoute - targetKm)
     const powerScore = Math.min(station.power_kw / 10, 10)
     const priceBonus = station.is_free ? 3 : (maxPricePerKwh ? (maxPricePerKwh - station.price_per_kwh) * 0.5 : 0)
-    const score = powerScore * 2 + priceBonus - distFromTarget * 0.5 - minDeviation * 3
+    const subscriberBoost = station.subscriber_id ? 4 : 0
+    const score = powerScore * 2 + priceBonus + subscriberBoost - distFromTarget * 0.5 - minDeviation * 3
 
     if (score > bestScore) {
       bestScore = score
@@ -228,7 +229,7 @@ export function TripPlanner() {
       }
 
       const activeRoute = Array.isArray(result) ? result[0] : result
-      const nearby = getStationsNearRoute(allStations, activeRoute.coordinates, 25)
+      const nearby = getStationsNearRoute(allStations, activeRoute.coordinates, 10)
       setRouteStations(nearby)
 
       const distanceKm = activeRoute.distance / 1000
@@ -250,7 +251,7 @@ export function TripPlanner() {
       for (let i = 1; i <= numStopsNeeded; i++) {
         const targetKm = segmentLength * i
         const availableStations = nearby.filter(s => !usedStationIds.has(s.id))
-        const station = getStationAtDistance(activeRoute.coordinates, cumDist, targetKm, availableStations, 25, maxPricePerKwh || undefined)
+        const station = getStationAtDistance(activeRoute.coordinates, cumDist, targetKm, availableStations, 10, maxPricePerKwh || undefined)
 
         if (station) {
           usedStationIds.add(station.id)
@@ -607,7 +608,12 @@ export function TripPlanner() {
                     {i < recommendedStops.length - 1 && <div className="w-0.5 h-8 bg-gray-200 dark:bg-gray-700" />}
                   </div>
                   <div className="pb-2 pt-1 flex-1">
-                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{stop.station.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{stop.station.name}</p>
+                      {stop.station.subscriber_id && (
+                        <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold flex-shrink-0">PARCEIRO</span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-gray-400">{stop.station.power_kw}kW • {stop.station.city}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded font-medium">
@@ -660,7 +666,12 @@ export function TripPlanner() {
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{s.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{s.name}</p>
+                    {s.subscriber_id && (
+                      <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold flex-shrink-0">PARCEIRO</span>
+                    )}
+                  </div>
                   <p className="text-[10px] text-gray-400">{s.power_kw}kW • {s.city}</p>
                 </div>
               </div>

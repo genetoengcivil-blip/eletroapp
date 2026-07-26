@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useThemeStore } from '../../stores/themeStore'
 import { getStoredAccounts, removeAccount, type StoredAccount } from '../../lib/accounts'
+import { MobileMenu } from './MobileMenu'
 
 export function Navbar() {
   const { user, profile, handleSignOut } = useAuth()
@@ -33,7 +34,9 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 glass-nav">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-14 sm:h-16 items-center">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Mobile hamburger */}
+            {user && <MobileMenu />}
             {isSubPage && (
               <button onClick={() => navigate(-1)}
                 className="p-2 -ml-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">

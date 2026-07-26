@@ -37,10 +37,10 @@ export function SubscriberDashboard() {
   const initials = (name: string) => name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase()
 
   const statCards = [
-    { label: 'Total', value: stations.length, icon: 'M13 10V3L4 14h7v7l9-11h-7z', bg: 'bg-blue-50 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400' },
-    { label: 'Ativos', value: activeStations, icon: 'M5 13l4 4L19 7', bg: 'bg-emerald-50 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' },
-    { label: 'Pendentes', value: pendingStations, icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', bg: 'bg-amber-50 dark:bg-amber-900/30', text: 'text-amber-600 dark:text-amber-400' },
-    { label: 'Avaliação', value: avgRating > 0 ? avgRating.toFixed(1) : '—', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z', bg: 'bg-purple-50 dark:bg-purple-900/30', text: 'text-purple-600 dark:text-purple-400', sub: `${totalReviews} avaliações` },
+    { label: 'Total', value: stations.length, icon: 'M13 10V3L4 14h7v7l9-11h-7z', bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-600 dark:text-blue-400', gradient: 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/10' },
+    { label: 'Ativos', value: activeStations, icon: 'M5 13l4 4L19 7', bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-600 dark:text-emerald-400', gradient: 'from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/10' },
+    { label: 'Pendentes', value: pendingStations, icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', bg: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-600 dark:text-amber-400', gradient: 'from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10' },
+    { label: 'Avaliação', value: avgRating > 0 ? avgRating.toFixed(1) : '—', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z', bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-600 dark:text-purple-400', sub: `${totalReviews} avaliações`, gradient: 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/10' },
   ]
 
   return (
@@ -70,9 +70,10 @@ export function SubscriberDashboard() {
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
             {statCards.map((s) => (
-              <div key={s.label} className="glass-card p-4 sm:p-5">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center ${s.text}`}>
+              <div key={s.label} className="relative overflow-hidden rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02]">
+                <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient || 'from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-850'}`} />
+                <div className="relative flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center ${s.text} group-hover:scale-110 transition-transform`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={s.icon} />
                     </svg>
@@ -98,10 +99,10 @@ export function SubscriberDashboard() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white">Plano {subscription.plan?.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Até {subscription.plan?.max_stations} eletropostos • R${subscription.plan?.price}/mês
-                    </p>
+                  <h3 className="font-bold text-gray-900 dark:text-white">Plano {subscription.plan?.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {subscription.plan?.max_stations} eletroposto{subscription.plan?.max_stations !== 1 ? 's' : ''} • R${subscription.plan?.price}/{subscription.plan?.period_months === 1 ? 'mês' : `${subscription.plan?.period_months}m`}
+                  </p>
                   </div>
                 </div>
                 <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm px-4 py-1.5 rounded-full font-semibold">

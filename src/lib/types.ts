@@ -1,4 +1,5 @@
 export type UserRole = 'user' | 'subscriber' | 'admin'
+export type BillingPeriod = 'monthly' | 'semester' | 'annual'
 
 export interface Profile {
   id: string
@@ -16,6 +17,10 @@ export interface SubscriptionPlan {
   max_stations: number
   features: string[]
   is_active: boolean
+  billing_period: BillingPeriod
+  period_months: number
+  base_plan: string
+  is_promo: boolean
   created_at: string
 }
 
@@ -23,6 +28,7 @@ export interface Subscription {
   id: string
   user_id: string
   plan_id: string
+  billing_period: BillingPeriod
   status: 'active' | 'inactive' | 'cancelled'
   starts_at: string
   expires_at: string
